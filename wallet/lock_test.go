@@ -144,7 +144,7 @@ func TestLockTransfer(t *testing.T) {
 	assert.Nil(t, err)
 
 	//
-	err = locker.TransToLocker(context.Background(), user1, "key1", user2, "key2")
+	err = locker.TransToLocker(context.Background(), user1, "key1", locker, user2, "key2")
 	assert.Nil(t, err)
 
 	total, err := locker.GetTotal(context.Background(), user1)
@@ -156,10 +156,10 @@ func TestLockTransfer(t *testing.T) {
 	assert.EqualValues(t, 5, total)
 
 	//
-	err = locker.TransToLocker(context.Background(), user1, "key11", user2, "key2")
+	err = locker.TransToLocker(context.Background(), user1, "key11", locker, user2, "key2")
 	assert.NotNil(t, err)
 
-	err = locker.TransToLocker(context.Background(), user1, "key11", user2, "key2", AccumulationIfExistsOption())
+	err = locker.TransToLocker(context.Background(), user1, "key11", locker, user2, "key2", AccumulationIfExistsOption())
 	assert.Nil(t, err)
 
 	total, err = locker.GetTotal(context.Background(), user1)
@@ -170,7 +170,7 @@ func TestLockTransfer(t *testing.T) {
 	assert.Nil(t, err)
 	assert.EqualValues(t, 11, total)
 
-	err = locker.TransToLocker(context.Background(), user1, "key111", user2, "key2", OverflowIfExistsOption())
+	err = locker.TransToLocker(context.Background(), user1, "key111", locker, user2, "key2", OverflowIfExistsOption())
 	assert.NotNil(t, err)
 
 	total, err = locker.GetTotal(context.Background(), user1)

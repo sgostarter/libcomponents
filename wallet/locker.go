@@ -74,13 +74,18 @@ func (impl *redisLockerImpl) GetTotal(ctx context.Context, account string) (int6
 	return total, err
 }
 
-func (impl *redisLockerImpl) TransToLocker(ctx context.Context, fromAccount, fromKey string, toAccount, toKey string, options ...Option) error {
+func (impl *redisLockerImpl) TransToLocker(ctx context.Context, fromAccount, fromKey string, toLocker Locker, toAccount, toKey string, options ...Option) error {
+	redisToLocker, ok := toLocker.(*redisLockerImpl)
+	if !ok {
+		return ErrInvalidObject
+	}
+
 	flag, err := optionNew(options...).ConflictFlag()
 	if err != nil {
 		return err
 	}
 
-	return lockTransferScript.Run(ctx, impl.redisCli, []string{impl.accountRedisKey(fromAccount), impl.accountRedisKey(toAccount)},
+	return lockTransferScript.Run(ctx, impl.redisCli, []string{impl.accountRedisKey(fromAccount), redisToLocker.accountRedisKey(toAccount)},
 		fromKey, totalKey, toKey, totalKey, flag).Err()
 }
 

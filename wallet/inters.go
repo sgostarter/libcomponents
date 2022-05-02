@@ -29,6 +29,6 @@ type Locker interface {
 
 	GetTotal(ctx context.Context, account string) (int64, error)
 
-	TransToLocker(ctx context.Context, fromAccount, fromKey string, toAccount, toKey string, options ...Option) error
+	TransToLocker(ctx context.Context, fromAccount, fromKey string, toLocker Locker, toAccount, toKey string, options ...Option) error
 	TransToWallet(ctx context.Context, account, key string, wallet Wallet, walletAccount string, remark string) error
 }
