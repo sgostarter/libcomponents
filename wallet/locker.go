@@ -101,5 +101,5 @@ func (impl *redisLockerImpl) TransToWallet(ctx context.Context, account, key str
 	}
 
 	return lockerTrans2WalletScript.Run(ctx, impl.redisCli, []string{impl.accountRedisKey(account), redisWallet.walletRedisKey(),
-		redisHistory.accountRedisKey(account)}, key, totalKey, walletAccount, time.Now().Unix(), account+"\n"+key+"\n"+remark).Err()
+		redisHistory.accountRedisKey(account)}, key, totalKey, walletAccount, time.Now().Unix(), BuildHistoryValuePayload(account, key, remark)).Err()
 }
