@@ -100,6 +100,19 @@ func (impl *redisLockerImpl) TransToWallet(ctx context.Context, account, key str
 		return ErrInvalidObject
 	}
 
-	return lockerTrans2WalletScript.Run(ctx, impl.redisCli, []string{impl.accountRedisKey(account), redisWallet.walletRedisKey(),
-		redisHistory.accountRedisKey(account)}, key, totalKey, walletAccount, time.Now().Unix(), BuildHistoryValuePayload(account, key, remark)).Err()
+	n, err := lockerTrans2WalletScript.Run(ctx, impl.redisCli, []string{impl.accountRedisKey(account), redisWallet.walletRedisKey(),
+		redisHistory.accountRedisKey(account)}, key, totalKey, walletAccount, time.Now().Unix(), BuildHistoryValuePayload(account, key, remark)).Int()
+	if err != nil {
+		return err
+	}
+
+	if n == 0 {
+		return nil
+	}
+
+	if n == 1 {
+		return ErrNotExists
+	}
+
+	return ErrFailed
 }

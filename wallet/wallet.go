@@ -45,8 +45,24 @@ func (impl *redisWalletImpl) TransToLocker(ctx context.Context, account string, 
 		return
 	}
 
-	err = walletTrans2LockerScript.Run(ctx, impl.redisCli, []string{impl.walletRedisKey(), rLocker.accountRedisKey(toAccount), impl.history.accountRedisKey(account)},
-		account, coins, key, totalKey, flag, time.Now().Unix(), BuildHistoryValuePayload(toAccount, key, remark)).Err()
+	val, err := walletTrans2LockerScript.Run(ctx, impl.redisCli, []string{impl.walletRedisKey(), rLocker.accountRedisKey(toAccount), impl.history.accountRedisKey(account)},
+		account, coins, key, totalKey, flag, time.Now().Unix(), BuildHistoryValuePayload(toAccount, key, remark)).Int()
+	if err != nil {
+		return err
+	}
+
+	if val == 0 {
+		return
+	}
+
+	switch val {
+	case 1:
+		err = ErrNoCoins
+	case 2:
+		err = ErrExists
+	default:
+		err = ErrFailed
+	}
 
 	return err
 }

@@ -3,5 +3,9 @@ package wallet
 import "errors"
 
 var (
-	ErrBadData = errors.New("bad data")
+	ErrFailed    = errors.New("failed")
+	ErrBadData   = errors.New("bad data")
+	ErrNoCoins   = errors.New("no coins")
+	ErrExists    = errors.New("exists")
+	ErrNotExists = errors.New("not exists")
 )

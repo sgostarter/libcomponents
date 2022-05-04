@@ -96,12 +96,12 @@ var (
 
 		local coins = redis.call("HGET", wallet, fromAccount)
 		if coins == false or tonumber(coins) < fromCoins then
-			return redis.error_reply("not enough coins") 
+			return 1
 		end
 
 		local toCoins = redis.call("HGET", toAccount, toIDKey)
 		if not toCoins == false and flag ~= 1 then
-			return redis.error_reply("exists") 
+			return 2
 		end
 
 		if toCoins == false then
@@ -116,7 +116,7 @@ var (
 
 		redis.call("ZADD",  history, historyScore,  -fromCoins.."\n"..historyRemark)
 
-		return 1
+		return 0
 	`)
 
 	lockerTrans2WalletScript = redis.NewScript(`
@@ -132,7 +132,7 @@ var (
 
 		local fromCoins = redis.call("HGET", fromAccount, fromIDKey)
 		if fromCoins == false then
-			return redis.error_reply("not exists") 
+			return 1
 		end
 
 		redis.call("HINCRBY", wallet, walletAccount, fromCoins)
@@ -142,6 +142,6 @@ var (
 
 		redis.call("ZADD", history, historyScore, fromCoins.."\n"..historyMember)
 
-		return 1
+		return 0
 	`)
 )
