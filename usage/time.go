@@ -26,6 +26,9 @@ type TimeUsage interface {
 	DoStatisticsAndClean(tsB, tsE time.Time) map[int]*StatusTimeUsageData
 	DoStatisticsAndCleanEx(tsB, tsE time.Time, md MergeData) map[int]*StatusTimeUsageData
 
+	GetStatusStatistics(tsB, tsE time.Time, statuses []int) []*StatusTimeUsageData
+	GetStatusStatisticsEx(tsB, tsE time.Time, statuses []int, clearData bool, md MergeData) []*StatusTimeUsageData
+
 	GetStatusStatisticsAndClean(tsB, tsE time.Time, statuses []int) []*StatusTimeUsageData
 	GetStatusStatisticsAndCleanEx(tsB, tsE time.Time, statuses []int, md MergeData) []*StatusTimeUsageData
 }
@@ -38,9 +41,6 @@ type timeUsageImpl struct {
 	sync.Mutex
 
 	ds []statusWithTime
-
-	startStatus int
-	startD      interface{}
 }
 
 type statusWithTime struct {
@@ -85,21 +85,36 @@ func (ts *timeUsageImpl) DoStatistics(tsB, tsE time.Time, clearData bool, md Mer
 		return d
 	}
 
-	if len(ts.ds) == 0 {
-		fnD(ts.startStatus, ts.startD).Duration = tsE.Sub(tsB)
-	} else {
-		last := tsB
-		for _, f := range ts.ds {
-			fnD(ts.startStatus, ts.startD).Duration += f.at.Sub(last)
-			last = f.at
-			ts.startStatus = f.status
-			ts.startD = f.d
+	last := tsB
+	lastIdx := 0
+
+	var startStatus int
+
+	var startD interface{}
+
+	for idx, f := range ts.ds {
+		if f.at.Sub(last) < 0 {
+			startStatus = f.status
+			startD = f.d
+
+			continue
 		}
-		fnD(ts.startStatus, ts.startD).Duration += tsE.Sub(last)
+
+		if tsE.Sub(f.at) <= 0 {
+			break
+		}
+
+		fnD(startStatus, startD).Duration += f.at.Sub(last)
+		last = f.at
+		startStatus = f.status
+		startD = f.d
+		lastIdx = idx
 	}
 
-	if clearData {
-		ts.ds = ts.ds[0:0]
+	fnD(startStatus, startD).Duration += tsE.Sub(last)
+
+	if clearData && len(ts.ds) > 0 {
+		ts.ds = ts.ds[lastIdx:]
 	}
 
 	return
@@ -111,6 +126,10 @@ func (ts *timeUsageImpl) DoStatisticsAndClean(tsB, tsE time.Time) map[int]*Statu
 
 func (ts *timeUsageImpl) DoStatisticsAndCleanEx(tsB, tsE time.Time, md MergeData) map[int]*StatusTimeUsageData {
 	return ts.DoStatistics(tsB, tsE, true, md)
+}
+
+func (ts *timeUsageImpl) GetStatusStatistics(tsB, tsE time.Time, statuses []int) []*StatusTimeUsageData {
+	return ts.GetStatusStatisticsEx(tsB, tsE, statuses, false, nil)
 }
 
 func (ts *timeUsageImpl) GetStatusStatisticsEx(tsB, tsE time.Time, statuses []int, clearData bool, md MergeData) []*StatusTimeUsageData {
