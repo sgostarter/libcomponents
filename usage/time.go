@@ -78,7 +78,7 @@ func (ts *timeUsageImpl) DoStatistics(tsB, tsE time.Time, clearData bool, md Mer
 		}
 
 		d := &StatusTimeUsageData{
-			D: []interface{}{data},
+			D: data,
 		}
 		ds[status] = d
 

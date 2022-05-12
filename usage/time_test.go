@@ -85,3 +85,13 @@ func TestTimeUsage(t *testing.T) {
 		t.Logf("%d: %v VS %v == %d\n", statuses[idx], du[idx].Duration, statusMap[statuses[idx]], cast.ToInt(du[idx].D))
 	}
 }
+
+func TestTimeUsage2(t *testing.T) {
+	timeNow := time.Now()
+	ts := NewTimeUsage()
+
+	time.Sleep(time.Second * 2)
+	ts.Update(1, nil)
+	vs := ts.GetStatusStatisticsAndClean(timeNow.Add(-time.Second), timeNow.Add(time.Second), []int{1, 2})
+	t.Log(vs)
+}
