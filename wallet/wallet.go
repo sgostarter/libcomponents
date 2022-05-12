@@ -67,8 +67,13 @@ func (impl *redisWalletImpl) TransToLocker(ctx context.Context, account string, 
 	return err
 }
 
-func (impl *redisWalletImpl) GetCoins(ctx context.Context, account string) (int64, error) {
-	return impl.redisCli.HGet(ctx, impl.walletRedisKey(), account).Int64()
+func (impl *redisWalletImpl) GetCoins(ctx context.Context, account string) (val int64, err error) {
+	val, err = impl.redisCli.HGet(ctx, impl.walletRedisKey(), account).Int64()
+	if errors.Is(err, redis.Nil) {
+		err = nil
+	}
+
+	return
 }
 
 func (impl *redisWalletImpl) walletRedisKey() string {
