@@ -20,7 +20,7 @@ func BuildHistoryPayload(t HistoryType, me, he, remark string) string {
 	return fmt.Sprintf("%d\n%d\n%s\n%s\n%s", t, time.Now().Unix(), me, he, remark)
 }
 
-func ParseHistoryItem(s string) (t HistoryType, at time.Time, coins int64, account, key, remark string, err error) {
+func ParseHistoryItem(s string) (t HistoryType, at time.Time, coins int64, me, he, remark string, err error) {
 	ps := strings.SplitN(s, "\n", 6)
 	if len(ps) != 6 {
 		err = ErrBadData
@@ -49,8 +49,8 @@ func ParseHistoryItem(s string) (t HistoryType, at time.Time, coins int64, accou
 
 	at = time.Unix(n, 0)
 
-	account = ps[3]
-	key = ps[4]
+	me = ps[3]
+	he = ps[4]
 	remark = ps[5]
 
 	return
