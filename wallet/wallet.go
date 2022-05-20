@@ -3,8 +3,6 @@ package wallet
 import (
 	"context"
 	"errors"
-	"time"
-
 	"github.com/go-redis/redis/v8"
 )
 
@@ -46,7 +44,7 @@ func (impl *redisWalletImpl) TransToLocker(ctx context.Context, account string, 
 	}
 
 	val, err := walletTrans2LockerScript.Run(ctx, impl.redisCli, []string{impl.walletRedisKey(), rLocker.accountRedisKey(toAccount), impl.history.accountRedisKey(account)},
-		account, coins, key, totalKey, flag, time.Now().Unix(), BuildHistoryValuePayload(toAccount, key, remark)).Int()
+		account, coins, key, totalKey, flag, BuildHistoryValuePayload(toAccount, key, remark)).Int()
 	if err != nil {
 		return err
 	}

@@ -91,8 +91,7 @@ var (
 		local toIDKey = ARGV[3]
 		local toTotalKey = ARGV[4]
 		local flag = tonumber(ARGV[5])
-		local historyScore = ARGV[6]
-		local historyRemark = ARGV[7]
+		local historyRemark = ARGV[6]
 
 		local coins = redis.call("HGET", wallet, fromAccount)
 		if coins == false or tonumber(coins) < fromCoins then
@@ -114,7 +113,7 @@ var (
 
 		redis.call("HINCRBY", wallet, fromAccount, -fromCoins)
 
-		redis.call("ZADD",  history, historyScore,  -fromCoins.."\n"..historyRemark)
+		redis.call("LPUSH",  history, -fromCoins.."\n"..historyRemark)
 
 		return 0
 	`)
@@ -127,8 +126,7 @@ var (
 		local fromIDKey = ARGV[1]
 		local fromTotalKey = ARGV[2]
 		local walletAccount = ARGV[3]
-		local historyScore = ARGV[4]
-		local historyMember = ARGV[5]
+		local historyMember = ARGV[4]
 
 		local fromCoins = redis.call("HGET", fromAccount, fromIDKey)
 		if fromCoins == false then
@@ -140,7 +138,7 @@ var (
 		redis.call("HDEL", fromAccount, fromIDKey)
 		redis.call("HINCRBY", fromAccount, fromTotalKey, -tonumber(fromCoins))
 
-		redis.call("ZADD", history, historyScore, fromCoins.."\n"..historyMember)
+		redis.call("LPUSH", history, fromCoins.."\n"..historyMember)
 
 		return 0
 	`)

@@ -3,10 +3,11 @@ package wallet
 import (
 	"strconv"
 	"strings"
+	"time"
 )
 
 func BuildHistoryValuePayload(account, key, remark string) string {
-	return account + "\n" + key + "\n" + remark
+	return strconv.FormatInt(time.Now().Unix(), 10) + "\n" + account + "\n" + key + "\n" + remark
 }
 
 func ParseHistoryItem(s string) (coins int64, account, key, remark string, err error) {
