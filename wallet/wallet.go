@@ -3,6 +3,7 @@ package wallet
 import (
 	"context"
 	"errors"
+
 	"github.com/go-redis/redis/v8"
 )
 
@@ -44,7 +45,7 @@ func (impl *redisWalletImpl) TransToLocker(ctx context.Context, account string, 
 	}
 
 	val, err := walletTrans2LockerScript.Run(ctx, impl.redisCli, []string{impl.walletRedisKey(), rLocker.accountRedisKey(toAccount), impl.history.accountRedisKey(account)},
-		account, coins, key, totalKey, flag, BuildHistoryValuePayload(toAccount, key, remark)).Int()
+		account, coins, key, totalKey, flag, BuildHistoryPayload(HistoryTypeWL, account, key, remark)).Int()
 	if err != nil {
 		return err
 	}
@@ -63,6 +64,43 @@ func (impl *redisWalletImpl) TransToLocker(ctx context.Context, account string, 
 	}
 
 	return err
+}
+
+func (impl *redisWalletImpl) TransToWallet(ctx context.Context, account string, coins int64, remarkFrom string, wallet Wallet,
+	accountTo, remarkTo string, options ...Option) (err error) {
+	flag, err := optionNew(options...).ConflictFlag()
+	if err != nil {
+		return err
+	}
+
+	toWallet, ok := wallet.(*redisWalletImpl)
+	if !ok {
+		err = ErrInvalidObject
+
+		return
+	}
+
+	redisHistoryTo, ok := wallet.GetHistory().(*redisHistoryImpl)
+	if !ok {
+		return ErrInvalidObject
+	}
+
+	val, err := walletTrans2WalletScript.Run(ctx, impl.redisCli, []string{impl.walletRedisKey(), toWallet.walletRedisKey(), impl.history.accountRedisKey(account),
+		redisHistoryTo.accountRedisKey(accountTo)}, account, coins, accountTo, flag,
+		BuildHistoryPayload(HistoryTypeWW, account, accountTo, remarkFrom),
+		BuildHistoryPayload(HistoryTypeWW, accountTo, account, remarkTo)).Int()
+
+	if err != nil {
+		return err
+	}
+
+	if val == 0 {
+		return
+	}
+
+	err = ErrFailed
+
+	return
 }
 
 func (impl *redisWalletImpl) GetCoins(ctx context.Context, account string) (val int64, err error) {

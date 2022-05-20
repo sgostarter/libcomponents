@@ -14,9 +14,13 @@ func (opt *Options) ConflictFlag() (flag int, err error) {
 	}
 
 	if opt.accumulationIfExists {
-		flag = 1
+		flag |= 0x01
 	} else if opt.overflowIfExists {
-		flag = 2
+		flag |= 0x02
+	}
+
+	if opt.allowNegative {
+		flag |= 0x04
 	}
 
 	return

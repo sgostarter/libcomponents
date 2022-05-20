@@ -56,7 +56,7 @@ func (impl *redisHistoryImpl) GetItems(ctx context.Context, account string, star
 	items = make([]*HistoryItem, 0, len(rItems))
 
 	for _, item := range rItems {
-		coins, _, _, _, _ := ParseHistoryItem(cast.ToString(item.Member))
+		_, _, coins, _, _, _, _ := ParseHistoryItem(cast.ToString(item.Member))
 
 		items = append(items, &HistoryItem{
 			Coins: coins,

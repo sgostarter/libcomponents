@@ -19,7 +19,7 @@ var (
 		local incr = val
 		if ret == false then
 			redis.call("HSET", account, idKey, val)
-		elseif flag == 1 then
+		elseif (bit.band(flag,1)) ~= 0 then
 			redis.call("HINCRBY", account, idKey, val)
 		else
 			redis.call("HSET", account, idKey, val)
@@ -114,6 +114,39 @@ var (
 		redis.call("HINCRBY", wallet, fromAccount, -fromCoins)
 
 		redis.call("LPUSH",  history, -fromCoins.."\n"..historyRemark)
+
+		return 0
+	`)
+
+	walletTrans2WalletScript = redis.NewScript(`
+		local walletFrom =  KEYS[1]
+		local walletTo = KEYS[2]
+		local historyFrom = KEYS[3]
+		local historyTo = KEYS[4]
+
+		local fromAccount = ARGV[1]
+		local fromCoins = tonumber(ARGV[2])
+		local toAccount = ARGV[3]
+		local flag = tonumber(ARGV[4])
+		local historyFromRemark = ARGV[5]
+		local historyToRemark = ARGV[6]
+
+		if tonumber(fromCoins) <= 0 then
+			return redis.error_reply("invalid coins amount") 
+		end
+
+		local coins = redis.call("HGET", walletFrom, fromAccount)
+		if coins == false or tonumber(coins) < fromCoins then
+			if (bit.band(flag,4)) == 0 then
+				return 1
+			end
+		end
+
+		redis.call("HINCRBY", walletFrom, fromAccount, -fromCoins)
+		redis.call("HINCRBY", walletTo, toAccount, fromCoins)
+
+		redis.call("LPUSH",  historyFrom, -fromCoins.."\n"..historyFromRemark)
+		redis.call("LPUSH",  historyTo, fromCoins.."\n"..historyToRemark)
 
 		return 0
 	`)

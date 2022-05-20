@@ -18,6 +18,7 @@ type Wallet interface {
 	GetHistory() History
 
 	TransToLocker(ctx context.Context, account string, coins int64, remark string, locker Locker, toAccount, key string, options ...Option) (err error)
+	TransToWallet(ctx context.Context, account string, coins int64, remarkFrom string, wallet Wallet, accountTo, remarkTo string, options ...Option) (err error)
 
 	GetCoins(ctx context.Context, account string) (int64, error)
 }
