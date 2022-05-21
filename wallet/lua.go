@@ -95,11 +95,13 @@ var (
 
 		local coins = redis.call("HGET", wallet, fromAccount)
 		if coins == false or tonumber(coins) < fromCoins then
-			return 1
+			if (bit.band(flag,4)) == 0 then
+				return 1
+			end
 		end
 
 		local toCoins = redis.call("HGET", toAccount, toIDKey)
-		if not toCoins == false and flag ~= 1 then
+		if not toCoins == false and (bit.band(flag,1)) == 0 then
 			return 2
 		end
 
