@@ -98,7 +98,12 @@ func (impl *redisWalletImpl) TransToWallet(ctx context.Context, account string, 
 		return
 	}
 
-	err = ErrFailed
+	switch val {
+	case 1:
+		err = ErrNoCoins
+	default:
+		err = ErrFailed
+	}
 
 	return
 }
