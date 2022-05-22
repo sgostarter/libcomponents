@@ -6,12 +6,14 @@ import (
 )
 
 type HistoryItem struct {
-	Coins int64
-	At    time.Time
+	Coins  int64
+	At     time.Time
+	Remark string
 }
 
 type History interface {
-	GetItems(ctx context.Context, account string, startAt, finishAt time.Time, offset, count int64) ([]*HistoryItem, error)
+	GetItems(ctx context.Context, account string, offset, count int64) ([]*HistoryItem, error)
+	GetItemsASC(ctx context.Context, account string, offset, count int64) ([]*HistoryItem, error)
 }
 
 type Wallet interface {

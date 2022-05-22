@@ -2,15 +2,8 @@ package wallet
 
 import (
 	"context"
-	"strconv"
-	"time"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/spf13/cast"
-)
-
-var (
-	NullTime = time.Time{}
 )
 
 func newRedisHistory(redisCli *redis.Client, accountPre string) *redisHistoryImpl {
@@ -34,21 +27,24 @@ func (impl *redisHistoryImpl) accountRedisKey(account string) string {
 	return accountRedisKey
 }
 
-func (impl *redisHistoryImpl) GetItems(ctx context.Context, account string, startAt, finishAt time.Time, offset, count int64) (items []*HistoryItem, err error) {
-	fnGenTime := func(t time.Time, nullTimeString string) string {
-		if t == NullTime {
-			return nullTimeString
-		}
-
-		return strconv.FormatInt(t.Unix(), 10)
+func (impl *redisHistoryImpl) GetItems(ctx context.Context, account string, offset, count int64) (items []*HistoryItem, err error) {
+	if count == 0 {
+		count = 10000
 	}
 
-	rItems, err := impl.redisCli.ZRangeByScoreWithScores(ctx, impl.accountRedisKey(account), &redis.ZRangeBy{
-		Min:    fnGenTime(startAt, "-inf"),
-		Max:    fnGenTime(finishAt, "+inf"),
-		Offset: offset,
-		Count:  count,
-	}).Result()
+	return impl.getItems(ctx, account, offset, offset+count-1, false)
+}
+
+func (impl *redisHistoryImpl) GetItemsASC(ctx context.Context, account string, offset, count int64) ([]*HistoryItem, error) {
+	if count == 0 {
+		count = 10000
+	}
+
+	return impl.getItems(ctx, account, -offset-count, -offset-1, true)
+}
+
+func (impl *redisHistoryImpl) getItems(ctx context.Context, account string, start, stop int64, reverseOutput bool) (items []*HistoryItem, err error) {
+	rItems, err := impl.redisCli.LRange(ctx, impl.accountRedisKey(account), start, stop).Result()
 	if err != nil {
 		return
 	}
@@ -56,12 +52,19 @@ func (impl *redisHistoryImpl) GetItems(ctx context.Context, account string, star
 	items = make([]*HistoryItem, 0, len(rItems))
 
 	for _, item := range rItems {
-		_, _, coins, _, _, _, _ := ParseHistoryItem(cast.ToString(item.Member))
+		_, at, coins, _, _, remark, _ := ParseHistoryItem(item)
 
 		items = append(items, &HistoryItem{
-			Coins: coins,
-			At:    time.Unix(int64(item.Score), 0),
+			Coins:  coins,
+			At:     at,
+			Remark: remark,
 		})
+	}
+
+	if reverseOutput {
+		for idxB := 0; idxB < len(rItems)-1; idxB++ {
+			items[idxB], items[len(rItems)-1-idxB] = items[len(rItems)-1-idxB], items[idxB]
+		}
 	}
 
 	return
