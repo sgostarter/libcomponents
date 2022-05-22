@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"context"
+	"errors"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -64,6 +65,64 @@ func (impl *redisHistoryImpl) getItems(ctx context.Context, account string, star
 	if reverseOutput {
 		for idxB := 0; idxB < len(rItems)-1; idxB++ {
 			items[idxB], items[len(rItems)-1-idxB] = items[len(rItems)-1-idxB], items[idxB]
+		}
+	}
+
+	return
+}
+
+func (impl *redisHistoryImpl) Trans2CodeStorage(account string, storage HistoryCodeStorage) (err error) {
+	if storage == nil {
+		err = ErrFailed
+
+		return
+	}
+
+	redisKey := impl.accountRedisKey(account)
+
+	page := int64(1000)
+
+	for {
+		stop := int64(-1)
+		start := -page
+
+		var rItems []string
+		rItems, err = impl.redisCli.LRange(context.TODO(), redisKey, start, stop).Result()
+
+		if err != nil {
+			break
+		}
+
+		if len(rItems) == 0 {
+			break
+		}
+
+		idx := int64(len(rItems)) - 1
+
+		for ; idx >= 0; idx-- {
+			item := rItems[idx]
+			_, at, _, _, _, _, _ := ParseHistoryItem(item)
+			err = storage.Store(at, item)
+
+			if err != nil {
+				break
+			}
+		}
+
+		if errTrim := impl.redisCli.LTrim(context.Background(), redisKey, 0, idx-int64(len(rItems))).Err(); errTrim != nil {
+			if err == nil {
+				err = errTrim
+			}
+		}
+
+		if errors.Is(err, ErrStop) {
+			err = nil
+
+			break
+		}
+
+		if err != nil {
+			break
 		}
 	}
 

@@ -2,7 +2,9 @@ package wallet
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/sgostarter/libconfig/ut"
 	"github.com/stretchr/testify/assert"
@@ -51,6 +53,7 @@ func TestRedisWallet(t *testing.T) {
 	assert.EqualValues(t, 3, total)
 }
 
+// nolint
 func TestRedisWallet2(t *testing.T) {
 	cfg := ut.SetupUTConfig4Redis(t)
 	redisCli, err := initRedis(cfg.RedisDNS)
@@ -163,4 +166,121 @@ func TestRedisWallet3(t *testing.T) {
 	assert.EqualValues(t, "2from1 10000", items[0].Remark)
 	assert.EqualValues(t, 1, items[4].Coins)
 	assert.EqualValues(t, "2from1 1", items[4].Remark)
+}
+
+type utHistoryStorage struct {
+	items []string
+	cnt   int
+}
+
+func (stg *utHistoryStorage) Store(at time.Time, item string) (err error) {
+	if stg.cnt <= 0 {
+		return ErrStop
+	}
+
+	stg.items = append(stg.items, item)
+
+	stg.cnt--
+
+	return nil
+}
+
+// nolint
+func TestRedisWallet4(t *testing.T) {
+	cfg := ut.SetupUTConfig4Redis(t)
+	redisCli, err := initRedis(cfg.RedisDNS)
+	assert.Nil(t, err)
+
+	user1 := "user1"
+	user2 := "user2"
+
+	for _, user := range []string{user1, user2} {
+		redisCli.Del(context.Background(), "8:wallet")
+		redisCli.Del(context.Background(), "8:history:"+user)
+	}
+
+	wallet1 := NewRedisWallet(redisCli, "8")
+
+	for idx := int64(1); idx <= 10; idx++ {
+		err = wallet1.TransToWallet(context.Background(), user1, idx, fmt.Sprintf("1to2 %d", idx),
+			wallet1, user2, fmt.Sprintf("2from1 %d", idx), AllowNegativeOption())
+		assert.Nil(t, err)
+	}
+
+	fnCheckItems := func(items []*HistoryItem, expectCount int, coinFirst, coinLast int64, remarkFirst, remarkLast string) {
+		assert.EqualValues(t, expectCount, len(items))
+		if expectCount < 1 {
+			return
+		}
+
+		assert.EqualValues(t, coinFirst, items[0].Coins)
+		assert.EqualValues(t, remarkFirst, items[0].Remark)
+
+		assert.EqualValues(t, coinLast, items[len(items)-1].Coins)
+		assert.EqualValues(t, remarkLast, items[len(items)-1].Remark)
+	}
+
+	items, err := wallet1.GetHistory().GetItems(context.Background(), user2, 0, 1000)
+	assert.Nil(t, err)
+	fnCheckItems(items, 10, 10, 1, "2from1 10", "2from1 1")
+
+	stg := &utHistoryStorage{
+		cnt: 0,
+	}
+
+	err = wallet1.GetHistory().Trans2CodeStorage(user2, stg)
+	assert.Nil(t, err)
+	assert.EqualValues(t, 0, len(stg.items))
+
+	items, err = wallet1.GetHistory().GetItems(context.Background(), user2, 0, 1000)
+	assert.Nil(t, err)
+	fnCheckItems(items, 10, 10, 1, "2from1 10", "2from1 1")
+
+	stg = &utHistoryStorage{
+		cnt: 1,
+	}
+
+	err = wallet1.GetHistory().Trans2CodeStorage(user2, stg)
+	assert.Nil(t, err)
+	assert.EqualValues(t, 1, len(stg.items))
+
+	items, err = wallet1.GetHistory().GetItems(context.Background(), user2, 0, 1000)
+	assert.Nil(t, err)
+	fnCheckItems(items, 9, 10, 2, "2from1 10", "2from1 2")
+
+	stg = &utHistoryStorage{
+		cnt: 2,
+	}
+
+	err = wallet1.GetHistory().Trans2CodeStorage(user2, stg)
+	assert.Nil(t, err)
+	assert.EqualValues(t, 2, len(stg.items))
+
+	items, err = wallet1.GetHistory().GetItems(context.Background(), user2, 0, 1000)
+	assert.Nil(t, err)
+	fnCheckItems(items, 7, 10, 4, "2from1 10", "2from1 4")
+
+	stg = &utHistoryStorage{
+		cnt: 3,
+	}
+
+	err = wallet1.GetHistory().Trans2CodeStorage(user2, stg)
+	assert.Nil(t, err)
+	assert.EqualValues(t, 3, len(stg.items))
+
+	items, err = wallet1.GetHistory().GetItems(context.Background(), user2, 0, 1000)
+	assert.Nil(t, err)
+	fnCheckItems(items, 4, 10, 7, "2from1 10", "2from1 7")
+
+	stg = &utHistoryStorage{
+		cnt: 9999,
+	}
+
+	err = wallet1.GetHistory().Trans2CodeStorage(user2, stg)
+	assert.Nil(t, err)
+	assert.EqualValues(t, 4, len(stg.items))
+
+	items, err = wallet1.GetHistory().GetItems(context.Background(), user2, 0, 1000)
+	assert.Nil(t, err)
+	fnCheckItems(items, 0, 0, 0, "", "")
 }

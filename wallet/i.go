@@ -11,9 +11,15 @@ type HistoryItem struct {
 	Remark string
 }
 
+type HistoryCodeStorage interface {
+	Store(at time.Time, item string) (err error)
+}
+
 type History interface {
 	GetItems(ctx context.Context, account string, offset, count int64) ([]*HistoryItem, error)
 	GetItemsASC(ctx context.Context, account string, offset, count int64) ([]*HistoryItem, error)
+
+	Trans2CodeStorage(account string, storage HistoryCodeStorage) (err error)
 }
 
 type Wallet interface {

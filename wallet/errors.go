@@ -8,4 +8,6 @@ var (
 	ErrNoCoins   = errors.New("no coins")
 	ErrExists    = errors.New("exists")
 	ErrNotExists = errors.New("not exists")
+
+	ErrStop = errors.New("stop")
 )
