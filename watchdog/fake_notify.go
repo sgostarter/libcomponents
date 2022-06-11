@@ -1,0 +1,12 @@
+package watchdog
+
+func NewFakeNotify() INotify {
+	return &fakeNotifyImpl{}
+}
+
+type fakeNotifyImpl struct {
+}
+
+func (impl *fakeNotifyImpl) NotifyTimeout(msg string) {
+
+}
