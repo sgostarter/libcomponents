@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/sgostarter/libconfig v0.0.0-20220501124634-dd2bd2401e61
+	github.com/sgostarter/libconfig v0.0.0-20220729130023-9d19e6a36464
 	github.com/spf13/cast v1.4.1
 	github.com/stretchr/testify v1.7.1
 )
