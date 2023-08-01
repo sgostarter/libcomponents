@@ -109,7 +109,11 @@ func (impl *Curve[D, POINT]) init() {
 }
 
 func (impl *Curve[D, POINT]) genStorageKey(speed int, key string) string {
-	return fmt.Sprintf("%d_%s", speed, key)
+	if speed == 1 {
+		return key
+	}
+
+	return fmt.Sprintf("%d-%s", speed, key)
 }
 
 func (impl *Curve[D, POINT]) genCachedKey(speed int, timeLabel string) string {
