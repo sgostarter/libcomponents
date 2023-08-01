@@ -31,6 +31,14 @@ func (spt ftSupport) GetKeys() []string {
 	}
 }
 
+func (spt ftSupport) IsCsAccount(account string) bool {
+	return strings.HasSuffix(account, ".cs")
+}
+
+func (spt ftSupport) IsBuildInCsAccount(account string) bool {
+	return strings.HasSuffix(account, ".cs_buildin")
+}
+
 func Test1(t *testing.T) {
 	spt := &ftSupport{}
 	c := curve.NewCurve[int64, Point](time.Second*2, 20, []int{1, 5, 10},

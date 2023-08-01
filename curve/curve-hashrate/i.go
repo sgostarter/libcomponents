@@ -6,4 +6,7 @@ type Supporter interface {
 	GetKey4All() string
 
 	GetKeys() []string
+
+	IsCsAccount(account string) bool
+	IsBuildInCsAccount(account string) bool
 }

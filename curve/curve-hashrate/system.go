@@ -55,11 +55,11 @@ func (sys *System) ExplainDataAt(m map[string]int64) map[string]Point {
 			panic("invalidProxyID")
 		}
 
-		if strings.HasSuffix(ps[1], ".cs") {
+		if sys.spt.IsCsAccount(ps[1]) {
 			fnMustSD4All().CsV += d
 			fnMustSD4Coin(proxyID).CsV += d
 			fnMustSD4Pool(proxyID).CsV += d
-		} else if strings.HasSuffix(ps[1], ".cs_buildin") {
+		} else if sys.spt.IsBuildInCsAccount(ps[1]) {
 			fnMustSD4All().BuildInCsV += d
 			fnMustSD4Coin(proxyID).BuildInCsV += d
 			fnMustSD4Pool(proxyID).BuildInCsV += d
