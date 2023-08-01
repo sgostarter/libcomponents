@@ -12,6 +12,10 @@ type System struct {
 	spt Supporter
 }
 
+func NewSystem(spt Supporter) *System {
+	return &System{spt: spt}
+}
+
 func (sys *System) ExplainDataAt(m map[string]int64) map[string]Point {
 	rm := make(map[string]*Point)
 
