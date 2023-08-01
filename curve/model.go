@@ -8,7 +8,7 @@ type ImmutableData[D any] interface {
 
 type PointWithTimestamp[POINT any] struct {
 	At int64 `yaml:"at"`
-	D  POINT `yaml:"d"`
+	D  POINT `yaml:",inline"`
 }
 
 type Storage[POINT any] interface {
