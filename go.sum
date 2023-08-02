@@ -35,6 +35,8 @@ github.com/sgostarter/libeasygo v0.1.44 h1:8k9AtuejAunBFp6Vz0/UlWT23FwXHmUB/5SgK
 github.com/sgostarter/libeasygo v0.1.44/go.mod h1:483IgwciD+EiyXMDteoRKjR7FfgcIYq/91ODzCivFto=
 github.com/sgostarter/libeasygo v0.1.45 h1:ay2bK2993fjstSeqPEgt2Iqa1cgJfcs7BLQls9ppuHY=
 github.com/sgostarter/libeasygo v0.1.45/go.mod h1:483IgwciD+EiyXMDteoRKjR7FfgcIYq/91ODzCivFto=
+github.com/sgostarter/libeasygo v0.1.46 h1:S3Hw2lEpy2eQ3RXUZ1ZlU8lFPPKGeLBUWLEQlL25hFw=
+github.com/sgostarter/libeasygo v0.1.46/go.mod h1:483IgwciD+EiyXMDteoRKjR7FfgcIYq/91ODzCivFto=
 github.com/spf13/cast v1.4.1 h1:s0hze+J0196ZfEMTs80N7UlFt0BDuQ7Q+JDnHiMWKdA=
 github.com/spf13/cast v1.4.1/go.mod h1:Qx5cxh0v+4UWYiBimWS+eyWzqEqokIECu5etghLkUJE=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
