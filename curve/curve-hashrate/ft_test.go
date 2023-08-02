@@ -13,29 +13,29 @@ import (
 type ftSupport struct {
 }
 
-func (spt ftSupport) GetKey4PoolHashrate(poolID int64) string {
+func (spt ftSupport) HRSGetKey4Pool(poolID int64) string {
 	return fmt.Sprintf("H_%d", poolID)
 }
 
-func (spt ftSupport) GetKey4CoinHashrate(poolID int64) string {
+func (spt ftSupport) HRSGetKey4Coin(poolID int64) string {
 	return fmt.Sprintf("C_%d", poolID+1000)
 }
 
-func (spt ftSupport) GetKey4All() string {
+func (spt ftSupport) HRSGetKey4All() string {
 	return "all"
 }
 
-func (spt ftSupport) GetKeys() []string {
+func (spt ftSupport) HRSGetLoadKeys() []string {
 	return []string{
 		"H_1", "H_2", "C_1001", "all",
 	}
 }
 
-func (spt ftSupport) IsCsAccount(account string) bool {
+func (spt ftSupport) HRSIsCsAccount(account string) bool {
 	return strings.HasSuffix(account, ".cs")
 }
 
-func (spt ftSupport) IsBuildInCsAccount(account string) bool {
+func (spt ftSupport) HRSIsBuildInCsAccount(account string) bool {
 	return strings.HasSuffix(account, ".cs_buildin")
 }
 
@@ -106,9 +106,9 @@ func Test1(t *testing.T) {
 
 func ftDump(c *curve.Curve[int64, Point], spt Supporter) {
 	fmt.Println("------------------------------------------")
-	tss1, ps1 := c.GetCurves(1, spt.GetKey4PoolHashrate(1), 30)
-	tss2, ps2 := c.GetCurves(1, spt.GetKey4All(), 30)
-	tss12, ps12 := c.GetCurves(5, spt.GetKey4PoolHashrate(1), 30)
+	tss1, ps1 := c.GetCurves(1, spt.HRSGetKey4Pool(1), 30)
+	tss2, ps2 := c.GetCurves(1, spt.HRSGetKey4All(), 30)
+	tss12, ps12 := c.GetCurves(5, spt.HRSGetKey4Pool(1), 30)
 
 	var ss strings.Builder
 

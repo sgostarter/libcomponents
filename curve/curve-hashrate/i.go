@@ -1,12 +1,12 @@
 package curve_hashrate
 
 type Supporter interface {
-	GetKey4PoolHashrate(poolID int64) string
-	GetKey4CoinHashrate(poolID int64) string
-	GetKey4All() string
+	HRSGetKey4Pool(poolID int64) string
+	HRSGetKey4Coin(poolID int64) string
+	HRSGetKey4All() string
 
-	GetKeys() []string
+	HRSGetLoadKeys() []string
 
-	IsCsAccount(account string) bool
-	IsBuildInCsAccount(account string) bool
+	HRSIsCsAccount(account string) bool
+	HRSIsBuildInCsAccount(account string) bool
 }

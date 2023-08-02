@@ -32,15 +32,15 @@ func (sys *System) ExplainDataAt(m map[string]int64) map[string]Point {
 	}
 
 	fnMustSD4Pool := func(poolID int64) *Point {
-		return fnMustSD4Key(sys.spt.GetKey4PoolHashrate(poolID))
+		return fnMustSD4Key(sys.spt.HRSGetKey4Pool(poolID))
 	}
 
 	fnMustSD4Coin := func(poolID int64) *Point {
-		return fnMustSD4Key(sys.spt.GetKey4CoinHashrate(poolID))
+		return fnMustSD4Key(sys.spt.HRSGetKey4Coin(poolID))
 	}
 
 	fnMustSD4All := func() *Point {
-		return fnMustSD4Key(sys.spt.GetKey4All())
+		return fnMustSD4Key(sys.spt.HRSGetKey4All())
 	}
 
 	for key, d := range m {
@@ -55,11 +55,11 @@ func (sys *System) ExplainDataAt(m map[string]int64) map[string]Point {
 			panic("invalidProxyID")
 		}
 
-		if sys.spt.IsCsAccount(ps[1]) {
+		if sys.spt.HRSIsCsAccount(ps[1]) {
 			fnMustSD4All().CsV += d
 			fnMustSD4Coin(proxyID).CsV += d
 			fnMustSD4Pool(proxyID).CsV += d
-		} else if sys.spt.IsBuildInCsAccount(ps[1]) {
+		} else if sys.spt.HRSIsBuildInCsAccount(ps[1]) {
 			fnMustSD4All().BuildInCsV += d
 			fnMustSD4Coin(proxyID).BuildInCsV += d
 			fnMustSD4Pool(proxyID).BuildInCsV += d
@@ -80,7 +80,7 @@ func (sys *System) ExplainDataAt(m map[string]int64) map[string]Point {
 }
 
 func (sys *System) GetKeys() []string {
-	return sys.spt.GetKeys()
+	return sys.spt.HRSGetLoadKeys()
 }
 
 func (sys *System) NewImmutableData(d int64) curve.ImmutableData[int64] {
