@@ -12,6 +12,7 @@ github.com/godruoyi/go-snowflake v0.0.1 h1:x4Kb7s5MyZDeHasNbm630gBOggJdl6Fq1JDWG
 github.com/godruoyi/go-snowflake v0.0.1/go.mod h1:6JXMZzmleLpSK9pYpg4LXTcAz54mdYXTeXUvVks17+4=
 github.com/kelseyhightower/envconfig v1.4.0 h1:Im6hONhd3pLkfDFsbRgu68RDNkGF1r3dvMUtDTo2cv8=
 github.com/kelseyhightower/envconfig v1.4.0/go.mod h1:cccZRl6mQpaq41TPp5QxidR+Sa3axMbJDNb//FQX6Gg=
+github.com/kr/pretty v0.1.0 h1:L/CwN0zerZDmRFUapSPitk6f+Q3+0za1rQkzVuMiMFI=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pretty v0.2.1 h1:Fmg33tUaq4/8ym9TJN1x7sLJnHVwhP33CNkpYV/7rwI=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
@@ -30,6 +31,8 @@ github.com/sgostarter/libconfig v0.0.0-20220729130023-9d19e6a36464 h1:ypXhm54nnT
 github.com/sgostarter/libconfig v0.0.0-20220729130023-9d19e6a36464/go.mod h1:5KLny8g++hHgCBbsMYRpxSUsJIi77h/3/CftIiWJox8=
 github.com/sgostarter/libeasygo v0.1.43 h1:6HVzrOOH/8Fot7xl5DD1nve0RV2NIa8433Ahw+bGd9k=
 github.com/sgostarter/libeasygo v0.1.43/go.mod h1:E0SLPwqv4t4WhvxTCoOKM6IY5ugELAar3ztSXz+QjFA=
+github.com/sgostarter/libeasygo v0.1.44 h1:8k9AtuejAunBFp6Vz0/UlWT23FwXHmUB/5SgK8WMAbA=
+github.com/sgostarter/libeasygo v0.1.44/go.mod h1:483IgwciD+EiyXMDteoRKjR7FfgcIYq/91ODzCivFto=
 github.com/spf13/cast v1.4.1 h1:s0hze+J0196ZfEMTs80N7UlFt0BDuQ7Q+JDnHiMWKdA=
 github.com/spf13/cast v1.4.1/go.mod h1:Qx5cxh0v+4UWYiBimWS+eyWzqEqokIECu5etghLkUJE=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
