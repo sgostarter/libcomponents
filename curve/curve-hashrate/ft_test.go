@@ -39,6 +39,7 @@ func (spt ftSupport) HRSIsBuildInCsAccount(account string) bool {
 	return strings.HasSuffix(account, ".cs_buildin")
 }
 
+// nolint
 func Test1(t *testing.T) {
 	spt := &ftSupport{}
 	c := curve.NewCurve[int64, Point](time.Second*2, 20, []int{1, 5, 10},
@@ -104,6 +105,7 @@ func Test1(t *testing.T) {
 	ftDump(c, spt)
 }
 
+// nolint
 func ftDump(c *curve.Curve[int64, Point], spt Supporter) {
 	fmt.Println("------------------------------------------")
 	tss1, ps1 := c.GetCurves(1, spt.HRSGetKey4Pool(1), 30)

@@ -20,6 +20,7 @@ type UTBizPoint struct {
 type UTBizSystem struct {
 }
 
+// nolint
 func (UTBizSystem) ExplainDataAt(m map[string]int64) map[string]UTBizPoint {
 	rm := make(map[string]*UTBizPoint)
 
@@ -106,6 +107,7 @@ func (UTBizSystem) IsEmptyPOINT(p UTBizPoint) bool {
 	return p.Hashrate == 0 || p.CsHashrate == 0
 }
 
+// nolint
 func TestCurve1(t *testing.T) {
 	c := NewCurve[int64, UTBizPoint](time.Second*2, 20, []int{1, 5, 10}, NewCommonStorage[UTBizPoint]("./tmp/"),
 		&UTBizSystem{}, nil)

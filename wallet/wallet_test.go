@@ -12,7 +12,7 @@ import (
 
 func TestRedisWallet(t *testing.T) {
 	cfg := ut.SetupUTConfig4Redis(t)
-	redisCli, err := initRedis(cfg.RedisDNS)
+	redisCli, err := initRedis(cfg.RedisDSN)
 	assert.Nil(t, err)
 
 	user := "user"
@@ -56,7 +56,7 @@ func TestRedisWallet(t *testing.T) {
 // nolint
 func TestRedisWallet2(t *testing.T) {
 	cfg := ut.SetupUTConfig4Redis(t)
-	redisCli, err := initRedis(cfg.RedisDNS)
+	redisCli, err := initRedis(cfg.RedisDSN)
 	assert.Nil(t, err)
 
 	user1 := "user1"
@@ -94,7 +94,7 @@ func TestRedisWallet2(t *testing.T) {
 // nolint
 func TestRedisWallet3(t *testing.T) {
 	cfg := ut.SetupUTConfig4Redis(t)
-	redisCli, err := initRedis(cfg.RedisDNS)
+	redisCli, err := initRedis(cfg.RedisDSN)
 	assert.Nil(t, err)
 
 	user1 := "user1"
@@ -173,7 +173,7 @@ type utHistoryStorage struct {
 	cnt   int
 }
 
-func (stg *utHistoryStorage) Store(at time.Time, item string) (err error) {
+func (stg *utHistoryStorage) Store(_ time.Time, item string) (err error) {
 	if stg.cnt <= 0 {
 		return ErrStop
 	}
@@ -188,7 +188,7 @@ func (stg *utHistoryStorage) Store(at time.Time, item string) (err error) {
 // nolint
 func TestRedisWallet4(t *testing.T) {
 	cfg := ut.SetupUTConfig4Redis(t)
-	redisCli, err := initRedis(cfg.RedisDNS)
+	redisCli, err := initRedis(cfg.RedisDSN)
 	assert.Nil(t, err)
 
 	user1 := "user1"

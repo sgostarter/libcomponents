@@ -7,6 +7,6 @@ func NewFakeNotify() INotify {
 type fakeNotifyImpl struct {
 }
 
-func (impl *fakeNotifyImpl) NotifyTimeout(msg string) {
+func (impl *fakeNotifyImpl) NotifyTimeout(_ string) {
 
 }

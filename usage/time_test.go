@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cast"
 )
 
+// nolint
 func TestTimeUsage(t *testing.T) {
 	statuses := []int{1, 2, 3, 4}
 	statusMap := make(map[int]time.Duration)
@@ -31,8 +32,7 @@ func TestTimeUsage(t *testing.T) {
 			loop = false
 
 			continue
-		case <-time.After(time.Duration(rand.Int63n(int64(time.Millisecond * 10)))): // nolint: gosec
-			// nolint: gosec
+		case <-time.After(time.Duration(rand.Int63n(int64(time.Millisecond * 10)))):
 			status := statuses[rand.Int31n(4)]
 			ts.Update(status, 1)
 
@@ -54,7 +54,6 @@ func TestTimeUsage(t *testing.T) {
 	}
 
 	for idx := 0; idx < 100; idx++ {
-		// nolint: gosec
 		status := statuses[rand.Int31n(4)]
 
 		time.Sleep(time.Millisecond * 10)

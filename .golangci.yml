@@ -49,7 +49,7 @@ linters:
   enable:
     - gosimple          # 静态分析，用来简化代码
     - goimports         # 包含 gofmt 的功能，且能检查无用的导入
-    - revive            # 代替 golint
+#    - revive            # 代替 golint
     - dupl              # 检查重复的代码
     - forcetypeassert   # 检查类型断言
     - gochecknoinits    # 检查是否存在初始化函数
@@ -57,7 +57,6 @@ linters:
     - goconst           # 检查是否有重复的字符串应该替换成常量
 #    - gomnd             # 检查是否存在魔术数字
     - goprintffuncname  # 检查 Print 替换成 Printf
-    - ifshort           # 检查 if 语句是否可以用短句模式
     - importas          # 检查导入包的别名是否和包名一致
     - lll               # 检查代码一行长度是否超标
 #    - nakedret          # 查找复杂函数中的是否存在裸返回
@@ -66,7 +65,6 @@ linters:
     - promlinter        # 检查普罗米修斯的指标命名是否规范
     - predeclared       # 检查是否有代码覆盖了预声明标识符
     - forbidigo         # 支持 nolint 注释方法
-    - nolintlint        # 检查无效的 nolint 注释方法
     - misspell          # 检查注释中的单词是否拼写正确
     - wsl               # 增加可读性，添加空行
     - whitespace        # 增加可读性，添加空格

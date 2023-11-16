@@ -32,7 +32,7 @@ func initRedis(dsn string) (cli *redis.Client, err error) {
 // nolint: funlen
 func TestLockSet(t *testing.T) {
 	cfg := ut.SetupUTConfig4Redis(t)
-	redisCli, err := initRedis(cfg.RedisDNS)
+	redisCli, err := initRedis(cfg.RedisDSN)
 	assert.Nil(t, err)
 
 	user := "id"
@@ -125,7 +125,7 @@ func TestLockSet(t *testing.T) {
 
 func TestLockTransfer(t *testing.T) {
 	cfg := ut.SetupUTConfig4Redis(t)
-	redisCli, err := initRedis(cfg.RedisDNS)
+	redisCli, err := initRedis(cfg.RedisDSN)
 	assert.Nil(t, err)
 
 	user1 := "id"

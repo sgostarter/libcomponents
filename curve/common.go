@@ -22,6 +22,7 @@ func GenInt64AVGData[D int64](n int64) Int64AVGData[D] {
 
 func (o Int64AVGData[D]) Combine(d D) ImmutableData[D] {
 	z := new(big.Int).Set(o.sum)
+
 	return Int64AVGData[D]{
 		sum:   z.Add(z, big.NewInt(int64(d))),
 		count: o.count + 1,
@@ -37,6 +38,7 @@ func (o Int64AVGData[D]) Clone() ImmutableData[D] {
 
 func (o Int64AVGData[D]) Calc() D {
 	z := new(big.Int).Set(o.sum)
+
 	return D(z.Div(z, big.NewInt(int64(o.count))).Int64())
 }
 

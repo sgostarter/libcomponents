@@ -142,6 +142,7 @@ func (impl *Curve[D, POINT]) SetData(k string, d D) {
 		m := impl.getCachedDsOnCurrent(speed, t)
 
 		if v, ok := m.Load(k); ok {
+			// nolint:forcetypeassert
 			m.Store(k, v.(ImmutableData[D]).Combine(d))
 		} else {
 			m.Store(k, impl.bizSystem.NewImmutableData(d))
@@ -149,7 +150,7 @@ func (impl *Curve[D, POINT]) SetData(k string, d D) {
 	}
 }
 
-func (impl *Curve[D, POINT]) statisticRoutine(ctx context.Context, exiting func() bool) {
+func (impl *Curve[D, POINT]) statisticRoutine(ctx context.Context, _ func() bool) {
 	speedLabels := make(map[int]string)
 
 	for _, speed := range impl.speeds {
@@ -167,6 +168,7 @@ func (impl *Curve[D, POINT]) statisticRoutine(ctx context.Context, exiting func(
 		select {
 		case <-ctx.Done():
 			loop = false
+
 			continue
 		case <-time.After(sleepDuration):
 			for _, speed := range impl.speeds {
@@ -194,7 +196,9 @@ func (impl *Curve[D, POINT]) statisticRoutine(ctx context.Context, exiting func(
 				}
 
 				mm := make(map[string]D)
+
 				m.Range(func(key, value any) bool {
+					// nolint:forcetypeassert
 					mm[cast.ToString(key)] = value.(ImmutableData[D]).Calc() // the value is immutable
 
 					return true
