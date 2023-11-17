@@ -13,6 +13,20 @@ import (
 	"github.com/spf13/cast"
 )
 
+type KeyDataUpdateSample[POINT any] struct {
+	D POINT
+}
+
+type DataUpdateSample[POINT any] struct {
+	Speed   int
+	At      int64
+	Samples map[string]*KeyDataUpdateSample[POINT]
+}
+
+type DataUpdateObserver[POINT any] interface {
+	OnUpdate(samples []*DataUpdateSample[POINT])
+}
+
 type Curve[D, POINT any] struct {
 	logger l.Wrapper
 
@@ -30,10 +44,17 @@ type Curve[D, POINT any] struct {
 	dHistory     map[string][]*PointWithTimestamp[POINT]
 
 	cachedDs *cache.Cache
+
+	observer DataUpdateObserver[POINT]
 }
 
 func NewCurve[D, POINT any](baseDurationUnit time.Duration, maxPointCount int, speeds []int,
 	storage Storage[POINT], bizSystem BizSystem[D, POINT], logger l.Wrapper) *Curve[D, POINT] {
+	return NewCurveEx(baseDurationUnit, maxPointCount, speeds, storage, bizSystem, nil, logger)
+}
+
+func NewCurveEx[D, POINT any](baseDurationUnit time.Duration, maxPointCount int, speeds []int,
+	storage Storage[POINT], bizSystem BizSystem[D, POINT], observer DataUpdateObserver[POINT], logger l.Wrapper) *Curve[D, POINT] {
 	if logger == nil {
 		logger = l.NewNopLoggerWrapper()
 	}
@@ -76,6 +97,7 @@ func NewCurve[D, POINT any](baseDurationUnit time.Duration, maxPointCount int, s
 		routineMan:       routineman.NewRoutineMan(context.Background(), logger),
 		dHistory:         make(map[string][]*PointWithTimestamp[POINT]),
 		cachedDs:         cache.New(cacheDuration, cacheDuration),
+		observer:         observer,
 	}
 
 	c.init()
@@ -150,6 +172,7 @@ func (impl *Curve[D, POINT]) SetData(k string, d D) {
 	}
 }
 
+// nolint:gocognit
 func (impl *Curve[D, POINT]) statisticRoutine(ctx context.Context, _ func() bool) {
 	speedLabels := make(map[int]string)
 
@@ -171,6 +194,8 @@ func (impl *Curve[D, POINT]) statisticRoutine(ctx context.Context, _ func() bool
 
 			continue
 		case <-time.After(sleepDuration):
+			samples := make([]*DataUpdateSample[POINT], 0, len(impl.speeds))
+
 			for _, speed := range impl.speeds {
 				oldLabel := speedLabels[speed]
 				newLabel := impl.speedTimeSpans[speed].GetCurrentLabel()
@@ -178,6 +203,16 @@ func (impl *Curve[D, POINT]) statisticRoutine(ctx context.Context, _ func() bool
 				if oldLabel == newLabel {
 					continue
 				}
+
+				t, _ := impl.speedTimeSpans[speed].Label2Time(oldLabel)
+
+				sample := &DataUpdateSample[POINT]{
+					Speed:   speed,
+					At:      t.Unix(),
+					Samples: make(map[string]*KeyDataUpdateSample[POINT]),
+				}
+
+				samples = append(samples, sample)
 
 				speedLabels[speed] = newLabel
 
@@ -206,8 +241,6 @@ func (impl *Curve[D, POINT]) statisticRoutine(ctx context.Context, _ func() bool
 
 				currentDataSet = impl.bizSystem.ExplainDataAt(mm)
 
-				t, _ := impl.speedTimeSpans[speed].Label2Time(oldLabel)
-
 				for key, point := range currentDataSet {
 					storageKey := impl.genStorageKey(speed, key)
 
@@ -217,6 +250,10 @@ func (impl *Curve[D, POINT]) statisticRoutine(ctx context.Context, _ func() bool
 						At: t.Unix(),
 						D:  point,
 					})
+
+					sample.Samples[key] = &KeyDataUpdateSample[POINT]{
+						D: point,
+					}
 
 					if len(impl.dHistory[storageKey]) >= impl.maxPointCount {
 						impl.dHistory[storageKey] = append([]*PointWithTimestamp[POINT]{}, impl.dHistory[storageKey][1:]...)
@@ -230,6 +267,10 @@ func (impl *Curve[D, POINT]) statisticRoutine(ctx context.Context, _ func() bool
 
 					impl.dHistoryLock.RUnlock()
 				}
+			}
+
+			if len(samples) > 0 && impl.observer != nil {
+				impl.observer.OnUpdate(samples)
 			}
 		}
 	}

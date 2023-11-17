@@ -107,10 +107,26 @@ func (UTBizSystem) IsEmptyPOINT(p UTBizPoint) bool {
 	return p.Hashrate == 0 || p.CsHashrate == 0
 }
 
+type utObserver struct {
+	t *testing.T
+}
+
+// nolint
+func (impl *utObserver) OnUpdate(samples []*DataUpdateSample[UTBizPoint]) {
+	impl.t.Log("OnUpdate ==========>")
+	for _, sample := range samples {
+		impl.t.Log(sample.Speed, time.Unix(sample.At, 0).Format("15:04:05"))
+		for key, data := range sample.Samples {
+			impl.t.Log("  ", key, data.D)
+		}
+	}
+	impl.t.Log("OnUpdate <==========")
+}
+
 // nolint
 func TestCurve1(t *testing.T) {
-	c := NewCurve[int64, UTBizPoint](time.Second*2, 20, []int{1, 5, 10}, NewCommonStorage[UTBizPoint]("./tmp/"),
-		&UTBizSystem{}, nil)
+	c := NewCurveEx[int64, UTBizPoint](time.Second*2, 20, []int{1, 5, 10}, NewCommonStorage[UTBizPoint]("./tmp/"),
+		&UTBizSystem{}, &utObserver{t: t}, nil)
 
 	var wg sync.WaitGroup
 
