@@ -45,7 +45,8 @@ type Curve[D, POINT any] struct {
 
 	cachedDs *cache.Cache
 
-	observer DataUpdateObserver[POINT]
+	observerLock sync.Mutex
+	observer     DataUpdateObserver[POINT]
 }
 
 func NewCurve[D, POINT any](baseDurationUnit time.Duration, maxPointCount int, speeds []int,
@@ -87,7 +88,7 @@ func NewCurveEx[D, POINT any](baseDurationUnit time.Duration, maxPointCount int,
 	}
 
 	c := &Curve[D, POINT]{
-		logger:           logger,
+		logger:           logger.WithFields(l.StringField(l.ClsKey, "Curve")),
 		baseDurationUnit: baseDurationUnit,
 		speeds:           speeds,
 		maxPointCount:    maxPointCount,
@@ -128,6 +129,20 @@ func (impl *Curve[D, POINT]) init() {
 	}
 
 	impl.routineMan.StartRoutine(impl.statisticRoutine, "statisticRoutine")
+}
+
+func (impl *Curve[D, POINT]) SetDataUpdateObserver(observer DataUpdateObserver[POINT]) {
+	impl.observerLock.Lock()
+	defer impl.observerLock.Unlock()
+
+	impl.observer = observer
+}
+
+func (impl *Curve[D, POINT]) getDataUpdateObserver() DataUpdateObserver[POINT] {
+	impl.observerLock.Lock()
+	defer impl.observerLock.Unlock()
+
+	return impl.observer
 }
 
 func (impl *Curve[D, POINT]) genStorageKey(speed int, key string) string {
@@ -172,8 +187,14 @@ func (impl *Curve[D, POINT]) SetData(k string, d D) {
 	}
 }
 
-// nolint:gocognit
+// nolint:gocognit,funlen
 func (impl *Curve[D, POINT]) statisticRoutine(ctx context.Context, _ func() bool) {
+	logger := impl.logger.WithFields(l.StringField(l.RoutineKey, "statisticRoutine"))
+
+	logger.Debug("enter")
+
+	defer logger.Debug("leave")
+
 	speedLabels := make(map[int]string)
 
 	for _, speed := range impl.speeds {
@@ -269,8 +290,9 @@ func (impl *Curve[D, POINT]) statisticRoutine(ctx context.Context, _ func() bool
 				}
 			}
 
-			if len(samples) > 0 && impl.observer != nil {
-				impl.observer.OnUpdate(samples)
+			observer := impl.getDataUpdateObserver()
+			if len(samples) > 0 && observer != nil {
+				observer.OnUpdate(samples)
 			}
 		}
 	}

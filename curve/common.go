@@ -46,6 +46,78 @@ func (o Int64AVGData[D]) Calc() D {
 //
 //
 
+type Int64MaxData[D int64] struct {
+	v int64
+}
+
+func GenInt64MaxData[D int64](n int64) Int64MaxData[D] {
+	return Int64MaxData[D]{
+		v: n,
+	}
+}
+
+func (o Int64MaxData[D]) Combine(d D) ImmutableData[D] {
+	if o.v > int64(d) {
+		return Int64MaxData[D]{
+			v: o.v,
+		}
+	}
+
+	return Int64MaxData[D]{
+		v: int64(d),
+	}
+}
+
+func (o Int64MaxData[D]) Clone() ImmutableData[D] {
+	return Int64MaxData[D]{
+		v: o.v,
+	}
+}
+
+func (o Int64MaxData[D]) Calc() D {
+	return D(o.v)
+}
+
+//
+//
+//
+
+type Float64MaxData[D float64] struct {
+	v float64
+}
+
+func GenFloat64MaxData[D float64](n float64) Float64MaxData[D] {
+	return Float64MaxData[D]{
+		v: n,
+	}
+}
+
+func (o Float64MaxData[D]) Combine(d D) ImmutableData[D] {
+	if o.v > float64(d) {
+		return Float64MaxData[D]{
+			v: o.v,
+		}
+	}
+
+	return Float64MaxData[D]{
+		v: float64(d),
+	}
+}
+
+func (o Float64MaxData[D]) Clone() ImmutableData[D] {
+	return Float64MaxData[D]{
+		v: o.v,
+	}
+}
+
+func (o Float64MaxData[D]) Calc() D {
+	return D(o.v)
+}
+
+//
+//
+//
+
 func NewCommonStorage[POINT any](root string) *CommStorage[POINT] {
 	return &CommStorage[POINT]{
 		root: root,
