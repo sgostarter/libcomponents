@@ -2,9 +2,10 @@ package curve
 
 import (
 	"math/big"
-	"os"
 	"path"
 
+	"github.com/sgostarter/i/stg"
+	"github.com/sgostarter/libeasygo/stg/fs/rawfs"
 	"gopkg.in/yaml.v3"
 )
 
@@ -119,13 +120,23 @@ func (o Float64MaxData[D]) Calc() D {
 //
 
 func NewCommonStorage[POINT any](root string) *CommStorage[POINT] {
+	return NewCommonStorageEx[POINT](root, nil)
+}
+
+func NewCommonStorageEx[POINT any](root string, storage stg.FileStorage) *CommStorage[POINT] {
+	if storage == nil {
+		storage = rawfs.NewFSStorage("")
+	}
+
 	return &CommStorage[POINT]{
-		root: root,
+		root:    root,
+		storage: storage,
 	}
 }
 
 type CommStorage[POINT any] struct {
-	root string
+	root    string
+	storage stg.FileStorage
 }
 
 func (stg *CommStorage[POINT]) fileNameByKey(key string) string {
@@ -133,7 +144,7 @@ func (stg *CommStorage[POINT]) fileNameByKey(key string) string {
 }
 
 func (stg *CommStorage[POINT]) Load(key string) (ds []*PointWithTimestamp[POINT], err error) {
-	d, err := os.ReadFile(stg.fileNameByKey(key))
+	d, err := stg.storage.ReadFile(stg.fileNameByKey(key))
 	if err != nil {
 		return
 	}
@@ -144,14 +155,12 @@ func (stg *CommStorage[POINT]) Load(key string) (ds []*PointWithTimestamp[POINT]
 }
 
 func (stg *CommStorage[POINT]) Save(key string, ds []*PointWithTimestamp[POINT]) (err error) {
-	_ = os.MkdirAll(stg.root, 0700)
-
 	d, err := yaml.Marshal(ds)
 	if err != nil {
 		return
 	}
 
-	err = os.WriteFile(stg.fileNameByKey(key), d, 0600)
+	err = stg.storage.WriteFile(stg.fileNameByKey(key), d)
 
 	return
 }
