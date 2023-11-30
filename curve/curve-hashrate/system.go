@@ -45,7 +45,7 @@ func (sys *System) ExplainDataAt(m map[string]int64) map[string]Point {
 
 	for key, d := range m {
 		// proxy-id:account[x,x.cs,x.cs_buildin]
-		ps := strings.Split(cast.ToString(key), ":")
+		ps := strings.SplitN(cast.ToString(key), ":", 2)
 		if len(ps) != 2 {
 			continue
 		}
