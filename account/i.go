@@ -12,6 +12,7 @@ type Account interface {
 
 type Storage interface {
 	AddAccount(accountName, hashedPassword string) (uid uint64, err error)
+	SetHashedPassword(accountName, hashedPassword string) (err error)
 	FindAccount(accountName string) (uid uint64, hashedPassword string, err error)
 
 	AddToken(token string) error

@@ -70,11 +70,23 @@ func (impl *accountImpl) Login(accountName, password string) (uid uint64, token 
 		return
 	}
 
-	ok := crypt.CheckHashedPassword(password, userHashedPassword, impl.cfg.PasswordHashIterCount)
-	if !ok {
-		err = commerr.ErrPermissionDenied
+	if userHashedPassword == "" {
+		userHashedPassword, err = crypt.HashPassword(password, impl.cfg.PasswordHashIterCount)
+		if err != nil {
+			return
+		}
 
-		return
+		err = impl.storage.SetHashedPassword(accountName, userHashedPassword)
+		if err != nil {
+			return
+		}
+	} else {
+		ok := crypt.CheckHashedPassword(password, userHashedPassword, impl.cfg.PasswordHashIterCount)
+		if !ok {
+			err = commerr.ErrPermissionDenied
+
+			return
+		}
 	}
 
 	token, err = impl.tokenNew(uid, accountName)

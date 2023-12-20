@@ -15,17 +15,27 @@ import (
 )
 
 func NewFMAccountStorage(root string, storage stg.FileStorage) account.Storage {
+	return NewFMAccountStorageEx(root, storage, false)
+}
+
+func NewFMAccountStorageEx(root string, storage stg.FileStorage, prettySerial bool) account.Storage {
 	if storage == nil {
 		storage = rawfs.NewFSStorage("")
 	}
 
 	return &fsAccountStorageImpl{
 		accountStorage: mwf.NewMemWithFile[map[string]*AccountInfo, mwf.Serial, mwf.Lock](
-			make(map[string]*AccountInfo), &mwf.JSONSerial{}, &sync.RWMutex{}, filepath.Join(root, "accounts.json"), storage),
+			make(map[string]*AccountInfo), &mwf.JSONSerial{
+				MarshalIndent: prettySerial,
+			}, &sync.RWMutex{}, filepath.Join(root, "accounts.json"), storage),
 		tokenStorage: mwf.NewMemWithFile[map[string]time.Time, mwf.Serial, mwf.Lock](
-			make(map[string]time.Time), &mwf.JSONSerial{}, &sync.RWMutex{}, filepath.Join(root, "tokens.json"), storage),
+			make(map[string]time.Time), &mwf.JSONSerial{
+				MarshalIndent: prettySerial,
+			}, &sync.RWMutex{}, filepath.Join(root, "tokens.json"), storage),
 		accountPropertyStorage: mwf.NewMemWithFile[map[string][]byte, mwf.Serial, mwf.Lock](
-			make(map[string][]byte), &mwf.JSONSerial{}, &sync.RWMutex{}, filepath.Join(root, "accountProperties.json"), storage),
+			make(map[string][]byte), &mwf.JSONSerial{
+				MarshalIndent: prettySerial,
+			}, &sync.RWMutex{}, filepath.Join(root, "accountProperties.json"), storage),
 	}
 }
 
@@ -54,6 +64,27 @@ func (impl *fsAccountStorageImpl) AddAccount(accountName, hashedPassword string)
 			AccountName:    accountName,
 			HashedPassword: hashedPassword,
 		}
+
+		return
+	})
+
+	return
+}
+
+func (impl *fsAccountStorageImpl) SetHashedPassword(accountName, hashedPassword string) (err error) {
+	err = impl.accountStorage.Change(func(oldM map[string]*AccountInfo) (newM map[string]*AccountInfo, err error) {
+		newM = oldM
+		if len(newM) == 0 {
+			newM = make(map[string]*AccountInfo)
+		}
+
+		if _, ok := newM[accountName]; !ok {
+			err = commerr.ErrNotFound
+
+			return
+		}
+
+		newM[accountName].HashedPassword = hashedPassword
 
 		return
 	})
