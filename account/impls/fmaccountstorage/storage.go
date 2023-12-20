@@ -40,9 +40,10 @@ func NewFMAccountStorageEx(root string, storage stg.FileStorage, prettySerial bo
 }
 
 type fsAccountStorageImpl struct {
-	accountStorage         *mwf.MemWithFile[map[string]*AccountInfo, mwf.Serial, mwf.Lock]
-	tokenStorage           *mwf.MemWithFile[map[string]time.Time, mwf.Serial, mwf.Lock]
-	accountPropertyStorage *mwf.MemWithFile[map[string][]byte, mwf.Serial, mwf.Lock]
+	accountStorage          *mwf.MemWithFile[map[string]*AccountInfo, mwf.Serial, mwf.Lock]
+	tokenStorage            *mwf.MemWithFile[map[string]time.Time, mwf.Serial, mwf.Lock]
+	accountPropertyStorage  *mwf.MemWithFile[map[string][]byte, mwf.Serial, mwf.Lock]
+	lastCleanExpiredTokenAt time.Time
 }
 
 func (impl *fsAccountStorageImpl) AddAccount(accountName, hashedPassword string) (uid uint64, err error) {
@@ -105,7 +106,21 @@ func (impl *fsAccountStorageImpl) FindAccount(accountName string) (uid uint64, h
 	return
 }
 
-func (impl *fsAccountStorageImpl) AddToken(token string) error {
+func (impl *fsAccountStorageImpl) cleanExpiredTokenOnSafe(m map[string]time.Time) (cleanedCount int) {
+	impl.lastCleanExpiredTokenAt = time.Now()
+
+	for k, expiredAt := range m {
+		if time.Now().After(expiredAt) {
+			delete(m, k)
+
+			cleanedCount++
+		}
+	}
+
+	return
+}
+
+func (impl *fsAccountStorageImpl) AddToken(token string, expiredAt time.Time) error {
 	return impl.tokenStorage.Change(func(oldM map[string]time.Time) (newM map[string]time.Time, err error) {
 		newM = oldM
 		if len(newM) == 0 {
@@ -118,7 +133,9 @@ func (impl *fsAccountStorageImpl) AddToken(token string) error {
 			return
 		}
 
-		newM[token] = time.Now()
+		impl.cleanExpiredTokenOnSafe(newM)
+
+		newM[token] = expiredAt
 
 		return
 	})
@@ -137,16 +154,66 @@ func (impl *fsAccountStorageImpl) DelToken(token string) error {
 			return
 		}
 
+		impl.cleanExpiredTokenOnSafe(newM)
+
 		delete(newM, token)
 
 		return
 	})
 }
 
-func (impl *fsAccountStorageImpl) TokenExists(token string) (exists bool, err error) {
+func (impl *fsAccountStorageImpl) TokenExists(token string, renewDuration time.Duration) (exists bool, err error) {
 	impl.tokenStorage.Read(func(m map[string]time.Time) {
 		_, exists = m[token]
 	})
+
+	if exists && renewDuration > 0 {
+		_ = impl.tokenStorage.Change(func(oldM map[string]time.Time) (newM map[string]time.Time, err error) {
+			newM = oldM
+			if len(newM) == 0 {
+				newM = make(map[string]time.Time)
+			}
+
+			var i any
+
+			i, exists = newM[token]
+			if !exists {
+				err = commerr.ErrNotFound
+
+				return
+			}
+
+			expiredAt, ok := i.(time.Time)
+			if !ok {
+				err = commerr.ErrInternal
+
+				return
+			}
+
+			expiredAt.Add(renewDuration)
+
+			newM[token] = expiredAt
+
+			return
+		})
+	}
+
+	if time.Since(impl.lastCleanExpiredTokenAt) > time.Hour {
+		_ = impl.tokenStorage.Change(func(oldM map[string]time.Time) (newM map[string]time.Time, err error) {
+			newM = oldM
+			if len(newM) == 0 {
+				newM = make(map[string]time.Time)
+			}
+
+			if impl.cleanExpiredTokenOnSafe(newM) <= 0 {
+				err = commerr.ErrAborted
+
+				return
+			}
+
+			return
+		})
+	}
 
 	return
 }

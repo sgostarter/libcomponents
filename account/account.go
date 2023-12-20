@@ -3,6 +3,7 @@ package account
 import (
 	// nolint: gosec
 	"crypto/md5"
+	"time"
 
 	"github.com/sgostarter/i/commerr"
 	"github.com/sgostarter/i/l"
@@ -10,8 +11,11 @@ import (
 )
 
 type Config struct {
-	PasswordHashIterCount int
-	TokenSignKey          string
+	PasswordHashIterCount int    `yaml:"passwordHashIterCount" json:"passwordHashIterCount"`
+	TokenSignKey          string `yaml:"tokenSignKey" json:"tokenSignKey"`
+
+	TokenExpiresAfter time.Duration `yaml:"tokenExpiresAfter" json:"tokenExpiresAfter"`
+	AutoRenewDuration time.Duration `yaml:"autoRenewDuration" json:"autoRenewDuration"`
 }
 
 func NewAccount(storage Storage, cfg *Config, logger l.Wrapper) Account {
@@ -33,6 +37,10 @@ func NewAccount(storage Storage, cfg *Config, logger l.Wrapper) Account {
 
 	if cfg.PasswordHashIterCount <= 0 {
 		cfg.PasswordHashIterCount = 4096
+	}
+
+	if cfg.TokenExpiresAfter <= 0 {
+		cfg.TokenExpiresAfter = time.Hour * 24 * 356
 	}
 
 	tokenKey := md5.Sum([]byte(cfg.TokenSignKey)) // nolint: gosec
@@ -94,7 +102,7 @@ func (impl *accountImpl) Login(accountName, password string) (uid uint64, token 
 		return
 	}
 
-	err = impl.storage.AddToken(token)
+	err = impl.storage.AddToken(token, time.Now().Add(impl.cfg.TokenExpiresAfter))
 	if err != nil {
 		return
 	}
@@ -133,7 +141,7 @@ func (impl *accountImpl) GetPropertyData(token string, d interface{}) (err error
 //
 
 func (impl *accountImpl) who(token string) (uid uint64, accountName string, err error) {
-	exists, err := impl.storage.TokenExists(token)
+	exists, err := impl.storage.TokenExists(token, impl.cfg.AutoRenewDuration)
 	if err != nil {
 		return
 	}

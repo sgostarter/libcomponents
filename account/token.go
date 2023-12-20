@@ -20,10 +20,13 @@ func (impl *accountImpl) tokenNew(uid uint64, userName string) (token string, er
 		UID:      uid,
 		UserName: userName,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 		},
+	}
+
+	if impl.cfg.AutoRenewDuration <= 0 {
+		claims.RegisteredClaims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(impl.cfg.TokenExpiresAfter))
 	}
 
 	token, err = jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(impl.tokenKey)
