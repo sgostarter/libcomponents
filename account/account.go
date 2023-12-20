@@ -65,17 +65,13 @@ func (impl *accountImpl) Register(accountName, password string) (uid uint64, err
 }
 
 func (impl *accountImpl) Login(accountName, password string) (uid uint64, token string, err error) {
-	hashedPassword, err := crypt.HashPassword(password, impl.cfg.PasswordHashIterCount)
-	if err != nil {
-		return
-	}
-
 	uid, userHashedPassword, err := impl.storage.FindAccount(accountName)
 	if err != nil {
 		return
 	}
 
-	if hashedPassword != userHashedPassword {
+	ok := crypt.CheckHashedPassword(password, userHashedPassword, impl.cfg.PasswordHashIterCount)
+	if !ok {
 		err = commerr.ErrPermissionDenied
 
 		return
