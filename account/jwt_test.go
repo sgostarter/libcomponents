@@ -1,7 +1,7 @@
 package account
 
 import (
-	"crypto/md5"
+	"crypto/md5" // nolint: gosec
 	"fmt"
 	"testing"
 	"time"
@@ -12,7 +12,7 @@ import (
 )
 
 func TestJWTExpiredAt(t *testing.T) {
-	tokenKey := md5.Sum([]byte("x"))
+	tokenKey := md5.Sum([]byte("x")) // nolint: gosec
 	tokenKeyR := tokenKey[:]
 
 	claims := Claims{
@@ -42,5 +42,4 @@ func TestJWTExpiredAt(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, tokenD.Valid)
-
 }

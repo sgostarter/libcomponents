@@ -190,7 +190,7 @@ func (impl *fsAccountStorageImpl) TokenExists(token string, renewDuration time.D
 				return
 			}
 
-			expiredAt.Add(renewDuration)
+			expiredAt = expiredAt.Add(renewDuration)
 
 			newM[token] = expiredAt
 
