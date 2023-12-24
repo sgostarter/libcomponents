@@ -13,6 +13,7 @@ const (
 	ListCostDataNon ListCostDataType = iota
 	ListCostDataAdd
 	ListCostDataReplace
+	ListCostDataDelete
 )
 
 type LifeCostData struct {
@@ -40,6 +41,11 @@ func (LifeCostDataTrans) Combine(totalD *LifeCostTotalData, d LifeCostData) *Lif
 		r.ConsumeAmount = d.ConsumeAmount
 		r.EarnCount = d.EarnCount
 		r.EarnAmount = d.EarnAmount
+	case ListCostDataDelete:
+		r.ConsumeCount -= d.ConsumeCount
+		r.ConsumeAmount -= d.ConsumeAmount
+		r.EarnCount -= d.EarnCount
+		r.EarnAmount -= d.EarnAmount
 	}
 
 	return &r
