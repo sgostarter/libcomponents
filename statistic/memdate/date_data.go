@@ -6,9 +6,14 @@ import (
 	"github.com/jinzhu/now"
 )
 
+type WeekD[TotalT any] struct {
+	TotalT *TotalT
+	Day    int
+}
+
 type WeekData[TotalT any] struct {
-	TotalD *TotalT         `json:"totalD,omitempty"`
-	Day    map[int]*TotalT `json:"day,omitempty"`
+	TotalD *TotalT                `json:"totalD,omitempty"`
+	Day    map[int]*WeekD[TotalT] `json:"day,omitempty"`
 }
 
 func NewWeekData[TotalT any]() *WeekData[TotalT] {
@@ -16,7 +21,7 @@ func NewWeekData[TotalT any]() *WeekData[TotalT] {
 
 	return &WeekData[TotalT]{
 		TotalD: &d,
-		Day:    make(map[int]*TotalT),
+		Day:    make(map[int]*WeekD[TotalT]),
 	}
 }
 
@@ -35,7 +40,7 @@ func NewMonthData[TotalT any](year, month int, loc *time.Location) *MonthData[To
 
 	cT := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, loc)
 
-	dS := make(map[int]map[int]*TotalT) // week,day[1-7]
+	dS := make(map[int]map[int]*WeekD[TotalT]) // week,day[1-7]
 
 	week := 1
 
@@ -43,10 +48,15 @@ func NewMonthData[TotalT any](year, month int, loc *time.Location) *MonthData[To
 		weekDay := cT.Weekday()
 
 		if _, ok := dS[week]; !ok {
-			dS[week] = make(map[int]*TotalT)
+			dS[week] = make(map[int]*WeekD[TotalT])
 		}
 
-		var dd TotalT
+		var dd WeekD[TotalT]
+		dd.Day = cT.Day()
+
+		var td TotalT
+		dd.TotalT = &td
+
 		dS[week][int(weekDay)] = &dd
 
 		if weekDay == time.Sunday {

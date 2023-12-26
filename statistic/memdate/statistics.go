@@ -1,10 +1,12 @@
 package memdate
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"time"
 
+	"github.com/sgostarter/i/commerr"
 	"github.com/sgostarter/i/stg"
 	"github.com/sgostarter/libeasygo/stg/fs/rawfs"
 	"github.com/sgostarter/libeasygo/stg/mwf"
@@ -65,8 +67,8 @@ func (s *Statistics[K, TotalT, T, DT, S, L]) SetDayData(key K, at time.Time, d T
 
 	s.mustYear(key, year)
 
-	s.mYearData[key][year].Season[season].Month[month].Week[week].Day[weekDay] =
-		s.dataTrans.Combine(s.mYearData[key][year].Season[season].Month[month].Week[week].Day[weekDay], d)
+	s.mYearData[key][year].Season[season].Month[month].Week[week].Day[weekDay].TotalT =
+		s.dataTrans.Combine(s.mYearData[key][year].Season[season].Month[month].Week[week].Day[weekDay].TotalT, d)
 	s.mYearData[key][year].Season[season].Month[month].Week[week].TotalD =
 		s.dataTrans.Combine(s.mYearData[key][year].Season[season].Month[month].Week[week].TotalD, d)
 	s.mYearData[key][year].Season[season].Month[month].TotalD =
@@ -187,7 +189,7 @@ func (s *Statistics[K, TotalT, T, DT, S, L]) GetDayOn(key K, at time.Time) (tota
 		return
 	}
 
-	totalD = *s.mYearData[key][year].Season[season].Month[month].Week[week].Day[weekD]
+	totalD = *s.mYearData[key][year].Season[season].Month[month].Week[week].Day[weekD].TotalT
 	exists = true
 
 	return
@@ -251,4 +253,24 @@ func (s *Statistics[K, TotalT, T, DT, S, L]) save() error {
 	}
 
 	return nil
+}
+
+func (s *Statistics[K, TotalT, T, DT, S, L]) Export(key K) (dM map[int]*YearData[TotalT], err error) {
+	var d []byte
+
+	s.lock.RLock()
+	if yD, ok := s.mYearData[key]; ok {
+		d, err = json.Marshal(yD)
+	} else {
+		err = commerr.ErrNotFound
+	}
+	s.lock.RUnlock()
+
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal(d, &dM)
+
+	return
 }
