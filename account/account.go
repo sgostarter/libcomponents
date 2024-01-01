@@ -62,12 +62,16 @@ type accountImpl struct {
 }
 
 func (impl *accountImpl) Register(accountName, password string) (uid uint64, err error) {
+	return impl.RegisterEx(0, accountName, password)
+}
+
+func (impl *accountImpl) RegisterEx(userID uint64, accountName, password string) (uid uint64, err error) {
 	hashedPassword, err := crypt.HashPassword(password, impl.cfg.PasswordHashIterCount)
 	if err != nil {
 		return
 	}
 
-	uid, err = impl.storage.AddAccount(accountName, hashedPassword)
+	uid, err = impl.storage.AddAccountEx(userID, accountName, hashedPassword)
 
 	return
 }
@@ -116,6 +120,26 @@ func (impl *accountImpl) Who(token string) (uid uint64, accountName string, err 
 
 func (impl *accountImpl) Logout(token string) error {
 	return impl.storage.DelToken(token)
+}
+
+func (impl *accountImpl) HasAccount() (f bool, err error) {
+	return impl.storage.HasAccount()
+}
+
+func (impl *accountImpl) ChangePassword(token string, newPassword string) (err error) {
+	_, accountName, err := impl.who(token)
+	if err != nil {
+		return
+	}
+
+	hashedPassword, err := crypt.HashPassword(newPassword, impl.cfg.PasswordHashIterCount)
+	if err != nil {
+		return
+	}
+
+	err = impl.storage.SetHashedPassword(accountName, hashedPassword)
+
+	return
 }
 
 func (impl *accountImpl) SetPropertyData(token string, d interface{}) (err error) {

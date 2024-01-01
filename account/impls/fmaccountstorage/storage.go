@@ -47,6 +47,10 @@ type fsAccountStorageImpl struct {
 }
 
 func (impl *fsAccountStorageImpl) AddAccount(accountName, hashedPassword string) (uid uint64, err error) {
+	return impl.AddAccountEx(0, accountName, hashedPassword)
+}
+
+func (impl *fsAccountStorageImpl) AddAccountEx(userID uint64, accountName, hashedPassword string) (uid uint64, err error) {
 	err = impl.accountStorage.Change(func(oldM map[string]*AccountInfo) (newM map[string]*AccountInfo, err error) {
 		newM = oldM
 		if len(newM) == 0 {
@@ -54,12 +58,25 @@ func (impl *fsAccountStorageImpl) AddAccount(accountName, hashedPassword string)
 		}
 
 		if _, ok := newM[accountName]; ok {
-			err = commerr.ErrExiting
+			err = commerr.ErrAlreadyExists
 
 			return
 		}
 
-		uid = snowflake.ID()
+		uid = userID
+
+		if uid == 0 {
+			uid = snowflake.ID()
+		} else {
+			for _, info := range newM {
+				if info.ID == uid {
+					err = commerr.ErrAlreadyExists
+
+					return
+				}
+			}
+		}
+
 		newM[accountName] = &AccountInfo{
 			ID:             uid,
 			AccountName:    accountName,
@@ -101,6 +118,14 @@ func (impl *fsAccountStorageImpl) FindAccount(accountName string) (uid uint64, h
 		} else {
 			err = commerr.ErrNotFound
 		}
+	})
+
+	return
+}
+
+func (impl *fsAccountStorageImpl) HasAccount() (f bool, err error) {
+	impl.accountStorage.Read(func(m map[string]*AccountInfo) {
+		f = len(m) > 0
 	})
 
 	return
