@@ -3,6 +3,7 @@ package curve
 import (
 	"math/big"
 	"path"
+	"sync/atomic"
 
 	"github.com/sgostarter/i/stg"
 	"github.com/sgostarter/libeasygo/stg/fs/rawfs"
@@ -137,6 +138,7 @@ func NewCommonStorageEx[POINT any](root string, storage stg.FileStorage) *CommSt
 type CommStorage[POINT any] struct {
 	root    string
 	storage stg.FileStorage
+	noSave  atomic.Bool
 }
 
 func (stg *CommStorage[POINT]) fileNameByKey(key string) string {
@@ -155,6 +157,10 @@ func (stg *CommStorage[POINT]) Load(key string) (ds []*PointWithTimestamp[POINT]
 }
 
 func (stg *CommStorage[POINT]) Save(key string, ds []*PointWithTimestamp[POINT]) (err error) {
+	if stg.noSave.Load() {
+		return
+	}
+
 	d, err := yaml.Marshal(ds)
 	if err != nil {
 		return
@@ -163,4 +169,12 @@ func (stg *CommStorage[POINT]) Save(key string, ds []*PointWithTimestamp[POINT])
 	err = stg.storage.WriteFile(stg.fileNameByKey(key), d)
 
 	return
+}
+
+func (stg *CommStorage[POINT]) SetSaveFlag(save bool) {
+	stg.noSave.Store(!save)
+}
+
+func (stg *CommStorage[POINT]) GetSaveFlag() bool {
+	return !stg.noSave.Load()
 }
