@@ -142,6 +142,25 @@ func (impl *accountImpl) ChangePassword(token string, newPassword string) (err e
 	return
 }
 
+func (impl *accountImpl) ResetPassword(accountName string, newPassword string) (err error) {
+	hashedPassword, err := crypt.HashPassword(newPassword, impl.cfg.PasswordHashIterCount)
+	if err != nil {
+		return
+	}
+
+	err = impl.storage.SetHashedPassword(accountName, hashedPassword)
+
+	return
+}
+
+func (impl *accountImpl) ListUsers(createdAtStart, createdAtFinish int64) (accounts []User, err error) {
+	return impl.storage.ListUsers(createdAtStart, createdAtFinish)
+}
+
+func (impl *accountImpl) UserID2Name(uid uint64) (userName string, err error) {
+	return impl.storage.UserID2Name(uid)
+}
+
 func (impl *accountImpl) SetPropertyData(token string, d interface{}) (err error) {
 	_, userName, err := impl.who(token)
 	if err != nil {
@@ -151,6 +170,10 @@ func (impl *accountImpl) SetPropertyData(token string, d interface{}) (err error
 	return impl.storage.SetPropertyData(userName, d)
 }
 
+func (impl *accountImpl) SetPropertyDataByUserID(uid uint64, d interface{}) error {
+	return impl.storage.SetPropertyDataByUserID(uid, d)
+}
+
 func (impl *accountImpl) GetPropertyData(token string, d interface{}) (err error) {
 	_, userName, err := impl.who(token)
 	if err != nil {
@@ -158,6 +181,10 @@ func (impl *accountImpl) GetPropertyData(token string, d interface{}) (err error
 	}
 
 	return impl.storage.GetPropertyData(userName, d)
+}
+
+func (impl *accountImpl) GetPropertyDataByUserID(uid uint64, d interface{}) error {
+	return impl.storage.GetPropertyDataByUserID(uid, d)
 }
 
 //
