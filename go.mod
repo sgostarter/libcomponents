@@ -10,7 +10,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/sgostarter/i v0.1.16
 	github.com/sgostarter/libconfig v0.0.1
-	github.com/sgostarter/libeasygo v0.1.61
+	github.com/sgostarter/libeasygo v0.1.64
 	github.com/spf13/cast v1.5.1
 	github.com/stretchr/testify v1.8.4
 	gopkg.in/yaml.v3 v3.0.1
