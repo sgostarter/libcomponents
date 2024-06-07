@@ -7,8 +7,8 @@ import (
 )
 
 type WeekD[TotalT any] struct {
-	TotalT *TotalT
-	Day    int
+	TotalT *TotalT `json:"totalT"`
+	Day    int     `json:"day"`
 }
 
 type WeekData[TotalT any] struct {
