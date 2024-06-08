@@ -1,4 +1,4 @@
-package demo
+package onlyrecord
 
 import (
 	"fmt"
@@ -35,30 +35,13 @@ type storageImpl struct {
 	logger   l.Wrapper
 	dataRoot string
 
-	kv                kv.StorageTiny2
-	incomeTypeTable   TypeTable
-	expensesTypeTable TypeTable
+	kv kv.StorageTiny2
 }
 
 func (impl *storageImpl) init() {
 	_ = pathutils.MustDirExists(impl.dataRoot)
 
 	impl.kv = mwf.NewKVEx("kv.dat", rawfs.NewFSStorage(impl.dataRoot))
-	impl.incomeTypeTable = NewMFTypeTableEx(fmt.Sprintf("tt_%d.dat", MetaDataIncomeTypeID),
-		rawfs.NewFSStorage(impl.dataRoot), impl.logger)
-	impl.expensesTypeTable = NewMFTypeTableEx(fmt.Sprintf("tt_%d.dat", MetaDataExpensesTypeID),
-		rawfs.NewFSStorage(impl.dataRoot), impl.logger)
-}
-
-func (impl *storageImpl) GetTypeTable(t MetaDataType) TypeTable {
-	switch t {
-	case MetaDataIncomeTypeID:
-		return impl.incomeTypeTable
-	case MetaDataExpensesTypeID:
-		return impl.expensesTypeTable
-	}
-
-	return nil
 }
 
 func (impl *storageImpl) NewLogPool(idx int) (syncer.LogPool, error) {
@@ -72,10 +55,7 @@ func (impl *storageImpl) GetKVStorage() kv.Storage2 {
 }
 
 func (impl *storageImpl) NewSnapshot(lastData *syncer.SnapshotData) (syncer.Snapshot, error) {
-	return impls.NewSnapshot(impls.NewSnapshotRecordCache(lastData), impls.NewSnapshotPluginStorageManager(
-		map[string]impls.SnapshotPluginStorageGenerator{TypeTablePluginID: func(lastData *syncer.SnapshotData) (syncer.SnapshotPluginCache, bool) {
-			return NewSyncTypeTableSnapshotCache(lastData)
-		}}, lastData), impl.logger), nil
+	return impls.NewSnapshot(impls.NewSnapshotRecordCache(lastData), nil, impl.logger), nil
 }
 
 func (impl *storageImpl) PreLog(log syncer.Log, poolIndex int, logIDOnPool uint64) error {

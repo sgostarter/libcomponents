@@ -1,4 +1,4 @@
-package syncert
+package bookeepingtest
 
 import (
 	"os"

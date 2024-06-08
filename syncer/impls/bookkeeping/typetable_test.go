@@ -1,5 +1,5 @@
 // nolint
-package demo
+package bookkeeping
 
 import (
 	"os"
