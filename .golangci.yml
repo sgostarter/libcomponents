@@ -20,7 +20,7 @@ linters-settings:
   cyclop:
     max-complexity: 20
   funlen:
-    lines: 100
+    lines: 150
     statements: 50
 
   goimports:

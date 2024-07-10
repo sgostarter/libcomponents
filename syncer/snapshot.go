@@ -76,11 +76,11 @@ func (impl *syncerImpl) buildSnapshotOnRoutine(logPoolIndex int, logger l.Wrappe
 		if log.PluginID == "" {
 			switch log.OpType {
 			case OpTypeAdd:
-				err = snapshot.ApplyAddRecordLog(log.RecordID, log.Ds[0], log.NewVersionID)
+				err = snapshot.ApplyAddRecordLog(log.RecordID, log.Ds, log.NewVersionID)
 			case OpTypeDel:
 				err = snapshot.ApplyDelRecordLog(log.RecordID, log.VersionID)
 			case OpTypeChange:
-				err = snapshot.ApplyChangeRecordLog(log.RecordID, log.VersionID, log.Ds[0], log.NewVersionID)
+				err = snapshot.ApplyChangeRecordLog(log.RecordID, log.VersionID, log.Ds, log.NewVersionID)
 			default:
 				err = ptl.NewCodeError(ptl.CodeErrLogic)
 			}

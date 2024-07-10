@@ -42,11 +42,9 @@ func TestLogPool(t *testing.T) {
 	assert.False(t, exists)
 
 	log1 := syncer.Log{
-		OpType:   syncer.OpTypeAdd,
-		RecordID: "1",
-		Ds: [][]byte{
-			[]byte("111"),
-		},
+		OpType:       syncer.OpTypeAdd,
+		RecordID:     "1",
+		Ds:           []byte("111"),
 		NewVersionID: "1",
 	}
 
@@ -66,11 +64,9 @@ func TestLogPool(t *testing.T) {
 	assert.False(t, exists)
 
 	log2 := syncer.Log{
-		OpType:   syncer.OpTypeAdd,
-		RecordID: "2",
-		Ds: [][]byte{
-			[]byte("222"),
-		},
+		OpType:       syncer.OpTypeAdd,
+		RecordID:     "2",
+		Ds:           []byte("222"),
 		NewVersionID: "2",
 	}
 

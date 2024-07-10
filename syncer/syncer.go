@@ -2,6 +2,7 @@ package syncer
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 	"sync"
 
@@ -231,11 +232,9 @@ func (impl *syncerImpl) newVersionID() string {
 func (impl *syncerImpl) AppendAddRecordLog(recordID string, data []byte) error {
 	return impl.tryNewLog(func() (Log, error) {
 		return Log{
-			OpType:   OpTypeAdd,
-			RecordID: recordID,
-			Ds: [][]byte{
-				data,
-			},
+			OpType:       OpTypeAdd,
+			RecordID:     recordID,
+			Ds:           data,
 			NewVersionID: impl.newVersionID(),
 		}, nil
 	})
@@ -254,12 +253,10 @@ func (impl *syncerImpl) AppendDelRecordLog(recordID, versionID string) error {
 func (impl *syncerImpl) AppendChangeRecordLog(recordID, versionID string, data []byte) error {
 	return impl.tryNewLog(func() (Log, error) {
 		return Log{
-			OpType:    OpTypeChange,
-			RecordID:  recordID,
-			VersionID: versionID,
-			Ds: [][]byte{
-				data,
-			},
+			OpType:       OpTypeChange,
+			RecordID:     recordID,
+			VersionID:    versionID,
+			Ds:           data,
 			NewVersionID: impl.newVersionID(),
 		}, nil
 	})
@@ -300,7 +297,47 @@ func (impl *syncerImpl) GetAllLogs(startSeqID string) (logs []Log, err error) {
 
 	logs = make([]Log, 0, 100)
 
-	lastPoolIndex, _ := impl.getPoolIndex()
+	lastPoolIndex, logIDonPool := impl.getPoolIndex()
+	if lastPoolIndex == 0 && logIDonPool == 0 {
+		return
+	}
+
+	if logIDonPool <= 0 {
+		lastPoolIndex--
+	}
+
+	// use snapshot: (start id is '') && (lastPoolIndex > 0 && snapshot(lastPoolIndex) exists)
+
+	if startSeqIDN == 0 && lastPoolIndex > 0 {
+		var d *SnapshotData
+
+		d, err = impl.GetLastSnapshotData(lastPoolIndex)
+		if err != nil {
+			impl.logger.WithFields(l.ErrorField(err), l.IntField("lastPoolIndex", lastPoolIndex)).Error("get last snapshot data failed")
+
+			return
+		}
+
+		if d != nil {
+			var data []byte
+
+			data, err = json.Marshal(d)
+			if err != nil {
+				impl.logger.WithFields(l.ErrorField(err)).Error("marshal snapshot data failed")
+
+				return
+			}
+
+			logs = append(logs, Log{
+				SeqID:  uint64(lastPoolIndex)*impl.snapshotLogCount - 1,
+				OpType: OpTypeSnapshot,
+				Ds:     data,
+			})
+
+			startPoolIndex = lastPoolIndex
+			startLogIndexOnPool = 0
+		}
+	}
 
 	for ; startPoolIndex < lastPoolIndex; startPoolIndex++ {
 		logPool, e := impl.store.NewLogPool(startPoolIndex)
@@ -313,9 +350,13 @@ func (impl *syncerImpl) GetAllLogs(startSeqID string) (logs []Log, err error) {
 			return
 		}
 
-		startLogIndexOnPool = 0
+		for idx, log := range poolLogs {
+			log.SeqID = uint64(startPoolIndex)*impl.snapshotLogCount + uint64(idx) + startLogIndexOnPool
 
-		logs = append(logs, poolLogs...)
+			logs = append(logs, log)
+		}
+
+		startLogIndexOnPool = 0
 	}
 
 	logPool, err := impl.store.NewLogPool(startPoolIndex)
@@ -328,10 +369,10 @@ func (impl *syncerImpl) GetAllLogs(startSeqID string) (logs []Log, err error) {
 		return
 	}
 
-	logs = append(logs, poolLogs...)
+	for idx, log := range poolLogs {
+		log.SeqID = uint64(startPoolIndex)*impl.snapshotLogCount + uint64(idx) + startLogIndexOnPool
 
-	for idx := 0; idx < len(logs); idx++ {
-		logs[idx].SeqID = startSeqIDN + uint64(idx)
+		logs = append(logs, log)
 	}
 
 	return

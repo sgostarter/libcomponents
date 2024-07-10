@@ -100,11 +100,21 @@ func (impl *typeTableImpl) Add(id, label, parentID string, data []byte) error {
 				return
 			}
 
-			_, ok = newV[parentID]
+			var parentRow *typeRow
+
+			parentRow, ok = newV[parentID]
 			if !ok {
 				err = ptl.NewCodeError(ptl.CodeErrNotExists)
 
 				impl.logger.WithFields(l.StringField("id", id)).Error("add: parent id not exists")
+
+				return
+			}
+
+			if parentRow.ParentID != "" {
+				err = ptl.NewCodeError(ptl.CodeErrConflict)
+
+				impl.logger.WithFields(l.StringField("id", id)).Error("add: parent is a child")
 
 				return
 			}
@@ -218,11 +228,21 @@ func (impl *typeTableImpl) Change(id, label, parentID string, data []byte) error
 				return
 			}
 
-			_, ok = newV[parentID]
+			var parentRow *typeRow
+
+			parentRow, ok = newV[parentID]
 			if !ok {
 				err = ptl.NewCodeError(ptl.CodeErrConflict)
 
 				impl.logger.WithFields(l.StringField("id", id)).Error("change: parent id not exists")
+
+				return
+			}
+
+			if parentRow.ParentID != "" {
+				err = ptl.NewCodeError(ptl.CodeErrConflict)
+
+				impl.logger.WithFields(l.StringField("id", id)).Error("add: parent is a child")
 
 				return
 			}

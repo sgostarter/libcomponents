@@ -163,7 +163,7 @@ func TestSyncer3(t *testing.T) {
 		return syncer.Log{
 			OpType:   syncer.OpTypeAdd,
 			RecordID: "1",
-			Ds:       [][]byte{[]byte("111")},
+			Ds:       []byte("111"),
 			PluginID: bookkeeping.TypeTablePluginID,
 			PluginData: bookkeeping.TypeTableLog{
 				MetaDataType: bookkeeping.MetaDataIncomeTypeID,
@@ -178,7 +178,7 @@ func TestSyncer3(t *testing.T) {
 		return syncer.Log{
 			OpType:   syncer.OpTypeAdd,
 			RecordID: "2",
-			Ds:       [][]byte{[]byte("222")},
+			Ds:       []byte("222"),
 			PluginID: bookkeeping.TypeTablePluginID,
 			PluginData: bookkeeping.TypeTableLog{
 				MetaDataType: bookkeeping.MetaDataIncomeTypeID,
@@ -193,7 +193,7 @@ func TestSyncer3(t *testing.T) {
 		return syncer.Log{
 			OpType:   syncer.OpTypeAdd,
 			RecordID: "a",
-			Ds:       [][]byte{[]byte("aaa")},
+			Ds:       []byte("aaa"),
 			PluginID: bookkeeping.TypeTablePluginID,
 			PluginData: bookkeeping.TypeTableLog{
 				MetaDataType: bookkeeping.MetaDataExpensesTypeID,
@@ -208,7 +208,7 @@ func TestSyncer3(t *testing.T) {
 		return syncer.Log{
 			OpType:   syncer.OpTypeAdd,
 			RecordID: "b",
-			Ds:       [][]byte{[]byte("bbb")},
+			Ds:       []byte("bbb"),
 			PluginID: bookkeeping.TypeTablePluginID,
 			PluginData: bookkeeping.TypeTableLog{
 				MetaDataType: bookkeeping.MetaDataExpensesTypeID,

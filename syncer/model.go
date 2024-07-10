@@ -14,14 +14,14 @@ const (
 	OpTypeAdd OpType = iota
 	OpTypeDel
 	OpTypeChange
-	OpTypeAll
+	OpTypeSnapshot
 )
 
 type Log struct {
-	SeqID    uint64   `json:"seq_id"`
-	OpType   OpType   `json:"op_type,omitempty"`
-	RecordID string   `json:"record_id"`
-	Ds       [][]byte `json:"ds,omitempty"`
+	SeqID    uint64 `json:"seq_id"`
+	OpType   OpType `json:"op_type,omitempty"`
+	RecordID string `json:"record_id"`
+	Ds       []byte `json:"ds,omitempty"`
 
 	VersionID    string `json:"version_id,omitempty"`
 	NewVersionID string `json:"new_version_id,omitempty"`

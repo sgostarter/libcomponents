@@ -164,13 +164,13 @@ func (cli *UTClient) SyncFromServer() (err error) {
 		if log.PluginID == "" {
 			switch log.OpType {
 			case syncer.OpTypeAdd:
-				cli.applyAddRecord(log.RecordID, log.Ds[0], log.NewVersionID)
+				cli.applyAddRecord(log.RecordID, log.Ds, log.NewVersionID)
 			case syncer.OpTypeDel:
 				cli.applyDelRecord(log.RecordID, log.VersionID)
 			case syncer.OpTypeChange:
-				cli.applyChangeRecord(log.RecordID, log.VersionID, log.Ds[0], log.NewVersionID)
-			case syncer.OpTypeAll:
-				cli.t.Fatal(log.OpType)
+				cli.applyChangeRecord(log.RecordID, log.VersionID, log.Ds, log.NewVersionID)
+			case syncer.OpTypeSnapshot:
+				cli.applySnapshot(log.Ds)
 			}
 
 			cli.seqID = syncer.SeqIDN2S(log.SeqID)
@@ -180,6 +180,39 @@ func (cli *UTClient) SyncFromServer() (err error) {
 	}
 
 	return
+}
+
+func (cli *UTClient) applySnapshot(ds []byte) bool {
+	var d syncer.SnapshotData
+
+	err := json.Unmarshal(ds, &d)
+	if err != nil {
+		cli.t.Log("unmarshal snapshot data failed:", err)
+
+		return false
+	}
+
+	cli.rows = make([]*RecordRow, 0, len(d.Records))
+	for _, record := range d.Records {
+		var recordData RecordData
+
+		err = json.Unmarshal(record.Data, &recordData)
+		if err != nil {
+			cli.t.Log("unmarshal record data")
+		}
+
+		cli.rows = append(cli.rows, &RecordRow{
+			ID:         record.ID,
+			Version:    record.Version,
+			UpdateFlag: int(record.UpdateFlag),
+			Deleted:    record.Deleted,
+			RecordData: recordData,
+		})
+
+		cli.seqID = record.ID
+	}
+
+	return true
 }
 
 func (cli *UTClient) applyChangeRecord(id string, versionID string, data []byte, newVersionID string) bool {

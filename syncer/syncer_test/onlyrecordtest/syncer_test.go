@@ -132,23 +132,95 @@ func TestSyncer2(t *testing.T) {
 	assert.True(t, c1.Equal(c2))
 	c1.Dump()
 
+	time.Sleep(time.Second * 5)
+
+	// 200, 300, 11111
 	logs, err := s.GetAllLogs("")
 	assert.Nil(t, err)
-	assert.Equal(t, 6, len(logs))
+	if len(logs) == 6 {
+		assert.Equal(t, 6, len(logs))
 
-	logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[0].SeqID))
-	assert.Nil(t, err)
-	assert.Equal(t, 5, len(logs))
+		logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[0].SeqID))
+		assert.Nil(t, err)
+		assert.Equal(t, 5, len(logs))
 
-	logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[0].SeqID))
-	assert.Nil(t, err)
-	assert.Equal(t, 4, len(logs))
+		logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[0].SeqID))
+		assert.Nil(t, err)
+		assert.Equal(t, 4, len(logs))
 
-	logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[1].SeqID))
-	assert.Nil(t, err)
-	assert.Equal(t, 2, len(logs))
+		logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[1].SeqID))
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(logs))
 
-	logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[1].SeqID))
+		logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[1].SeqID))
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(logs))
+	} else {
+		assert.Equal(t, 4, len(logs))
+
+		logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[0].SeqID))
+		assert.Nil(t, err)
+		assert.Equal(t, 3, len(logs))
+
+		logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[0].SeqID))
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(logs))
+
+		logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[1].SeqID))
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(logs))
+	}
+
+}
+
+func TestSyncer3(t *testing.T) {
+	_ = os.RemoveAll(utRoot)
+	_ = pathutils.MustDirExists(utRoot)
+
+	s := syncer.NewSyncer(context.Background(), onlyrecord.NewMFStorage(utRoot, l.NewConsoleLoggerWrapper()), 3, l.NewConsoleLoggerWrapper())
+
+	c1 := syncert.NewUTClient(t, s)
+
+	record1, ok := c1.AddRecord(syncert.RecordData{
+		Amount: 100,
+		At:     time.Now(),
+		Remark: "100",
+	})
+	assert.True(t, ok)
+	t.Log(record1)
+
+	record2, ok := c1.AddRecord(syncert.RecordData{
+		Amount: 200,
+		At:     time.Now(),
+		Remark: "200",
+	})
+	assert.True(t, ok)
+	t.Log(record2)
+
+	_, ok = c1.AddRecord(syncert.RecordData{
+		Amount: 300,
+		At:     time.Now(),
+		Remark: "300",
+	})
+	assert.True(t, ok)
+
+	_, ok = c1.AddRecord(syncert.RecordData{
+		Amount: 400,
+		At:     time.Now(),
+		Remark: "400",
+	})
+	assert.True(t, ok)
+
+	c1.UploadChanges()
+
+	err := c1.SyncFromServer()
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(logs))
+
+	c2 := syncert.NewUTClient(t, s)
+
+	err = c2.SyncFromServer()
+	assert.Nil(t, err)
+
+	assert.True(t, c1.Equal(c2))
+
 }

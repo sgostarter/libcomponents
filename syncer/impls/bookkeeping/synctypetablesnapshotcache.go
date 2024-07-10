@@ -92,7 +92,7 @@ func (impl *snapshotSyncTypeTableStorage) ApplyLog(log syncer.Log) error {
 		m[log.RecordID] = TypeRow{
 			ID:       log.RecordID,
 			Label:    data.Label,
-			Data:     log.Ds[0],
+			Data:     log.Ds,
 			ParentID: data.ParentID,
 			At:       data.At,
 		}
