@@ -89,7 +89,7 @@ func (impl *syncerImpl) buildSnapshotOnRoutine(logPoolIndex int, logger l.Wrappe
 		}
 
 		if err != nil {
-			logger.WithFields(l.ErrorField(err), l.UInt64Field("seqID", log.SeqID)).Error("process log failed")
+			logger.WithFields(l.ErrorField(err), l.StringField("seqID", log.SeqID)).Error("process log failed")
 		}
 	}
 

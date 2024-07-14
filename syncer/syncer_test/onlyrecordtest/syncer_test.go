@@ -19,7 +19,7 @@ func TestSyncer(t *testing.T) {
 	_ = os.RemoveAll(utRoot)
 	_ = pathutils.MustDirExists(utRoot)
 
-	s := syncer.NewSyncer(context.Background(), onlyrecord.NewMFStorage(utRoot, l.NewConsoleLoggerWrapper()), 3, l.NewConsoleLoggerWrapper())
+	s := syncer.NewSyncer(context.Background(), nil, onlyrecord.NewMFStorage(utRoot, l.NewConsoleLoggerWrapper()), 3, l.NewConsoleLoggerWrapper())
 
 	err := s.AppendAddRecordLog("1", []byte("1"))
 	assert.Nil(t, err)
@@ -38,7 +38,7 @@ func TestSyncer2(t *testing.T) {
 	_ = os.RemoveAll(utRoot)
 	_ = pathutils.MustDirExists(utRoot)
 
-	s := syncer.NewSyncer(context.Background(), onlyrecord.NewMFStorage(utRoot, l.NewConsoleLoggerWrapper()), 3, l.NewConsoleLoggerWrapper())
+	s := syncer.NewSyncer(context.Background(), nil, onlyrecord.NewMFStorage(utRoot, l.NewConsoleLoggerWrapper()), 3, l.NewConsoleLoggerWrapper())
 
 	c1 := syncert.NewUTClient(t, s)
 
@@ -140,33 +140,33 @@ func TestSyncer2(t *testing.T) {
 	if len(logs) == 6 {
 		assert.Equal(t, 6, len(logs))
 
-		logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[0].SeqID))
+		logs, err = s.GetAllLogs(logs[0].SeqID)
 		assert.Nil(t, err)
 		assert.Equal(t, 5, len(logs))
 
-		logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[0].SeqID))
+		logs, err = s.GetAllLogs(logs[0].SeqID)
 		assert.Nil(t, err)
 		assert.Equal(t, 4, len(logs))
 
-		logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[1].SeqID))
+		logs, err = s.GetAllLogs(logs[1].SeqID)
 		assert.Nil(t, err)
 		assert.Equal(t, 2, len(logs))
 
-		logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[1].SeqID))
+		logs, err = s.GetAllLogs(logs[1].SeqID)
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(logs))
 	} else {
 		assert.Equal(t, 4, len(logs))
 
-		logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[0].SeqID))
+		logs, err = s.GetAllLogs(logs[0].SeqID)
 		assert.Nil(t, err)
 		assert.Equal(t, 3, len(logs))
 
-		logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[0].SeqID))
+		logs, err = s.GetAllLogs(logs[0].SeqID)
 		assert.Nil(t, err)
 		assert.Equal(t, 2, len(logs))
 
-		logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[1].SeqID))
+		logs, err = s.GetAllLogs(logs[1].SeqID)
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(logs))
 	}
@@ -177,7 +177,7 @@ func TestSyncer3(t *testing.T) {
 	_ = os.RemoveAll(utRoot)
 	_ = pathutils.MustDirExists(utRoot)
 
-	s := syncer.NewSyncer(context.Background(), onlyrecord.NewMFStorage(utRoot, l.NewConsoleLoggerWrapper()), 3, l.NewConsoleLoggerWrapper())
+	s := syncer.NewSyncer(context.Background(), nil, onlyrecord.NewMFStorage(utRoot, l.NewConsoleLoggerWrapper()), 3, l.NewConsoleLoggerWrapper())
 
 	c1 := syncert.NewUTClient(t, s)
 

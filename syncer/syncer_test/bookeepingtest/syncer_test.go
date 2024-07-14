@@ -19,7 +19,7 @@ func TestSyncer(t *testing.T) {
 	_ = os.RemoveAll(utRoot)
 	_ = pathutils.MustDirExists(utRoot)
 
-	s := syncer.NewSyncer(context.Background(), bookkeeping.NewMFStorage(utRoot, l.NewConsoleLoggerWrapper()), 3, l.NewConsoleLoggerWrapper())
+	s := syncer.NewSyncer(context.Background(), nil, bookkeeping.NewMFStorage(utRoot, l.NewConsoleLoggerWrapper()), 3, l.NewConsoleLoggerWrapper())
 
 	err := s.AppendAddRecordLog("1", []byte("1"))
 	assert.Nil(t, err)
@@ -38,7 +38,7 @@ func TestSyncer2(t *testing.T) {
 	_ = os.RemoveAll(utRoot)
 	_ = pathutils.MustDirExists(utRoot)
 
-	s := syncer.NewSyncer(context.Background(), bookkeeping.NewMFStorage(utRoot, l.NewConsoleLoggerWrapper()), 3, l.NewConsoleLoggerWrapper())
+	s := syncer.NewSyncer(context.Background(), nil, bookkeeping.NewMFStorage(utRoot, l.NewConsoleLoggerWrapper()), 3, l.NewConsoleLoggerWrapper())
 
 	c1 := syncert.NewUTClient(t, s)
 
@@ -136,19 +136,19 @@ func TestSyncer2(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 6, len(logs))
 
-	logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[0].SeqID))
+	logs, err = s.GetAllLogs(logs[0].SeqID)
 	assert.Nil(t, err)
 	assert.Equal(t, 5, len(logs))
 
-	logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[0].SeqID))
+	logs, err = s.GetAllLogs(logs[0].SeqID)
 	assert.Nil(t, err)
 	assert.Equal(t, 4, len(logs))
 
-	logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[1].SeqID))
+	logs, err = s.GetAllLogs(logs[1].SeqID)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(logs))
 
-	logs, err = s.GetAllLogs(syncer.SeqIDN2S(logs[1].SeqID))
+	logs, err = s.GetAllLogs(logs[1].SeqID)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(logs))
 }
@@ -157,18 +157,15 @@ func TestSyncer3(t *testing.T) {
 	_ = os.RemoveAll(utRoot)
 	_ = pathutils.MustDirExists(utRoot)
 
-	s := syncer.NewSyncer(context.Background(), bookkeeping.NewMFStorage(utRoot, l.NewConsoleLoggerWrapper()), 3, l.NewConsoleLoggerWrapper())
+	s := syncer.NewSyncer(context.Background(), nil, bookkeeping.NewMFStorage(utRoot, l.NewConsoleLoggerWrapper()), 3, l.NewConsoleLoggerWrapper())
 
 	err := s.AppendPluginLog(func() (syncer.Log, error) {
 		return syncer.Log{
 			OpType:   syncer.OpTypeAdd,
 			RecordID: "1",
-			Ds:       []byte("111"),
 			PluginID: bookkeeping.TypeTablePluginID,
-			PluginData: bookkeeping.TypeTableLog{
+			Ds: bookkeeping.TypeTableLogCore{
 				MetaDataType: bookkeeping.MetaDataIncomeTypeID,
-				Label:        "1",
-				At:           time.Now(),
 			}.JSONBytes(),
 		}, nil
 	})
@@ -178,12 +175,9 @@ func TestSyncer3(t *testing.T) {
 		return syncer.Log{
 			OpType:   syncer.OpTypeAdd,
 			RecordID: "2",
-			Ds:       []byte("222"),
 			PluginID: bookkeeping.TypeTablePluginID,
-			PluginData: bookkeeping.TypeTableLog{
+			Ds: bookkeeping.TypeTableLogCore{
 				MetaDataType: bookkeeping.MetaDataIncomeTypeID,
-				Label:        "2",
-				At:           time.Now(),
 			}.JSONBytes(),
 		}, nil
 	})
@@ -193,12 +187,9 @@ func TestSyncer3(t *testing.T) {
 		return syncer.Log{
 			OpType:   syncer.OpTypeAdd,
 			RecordID: "a",
-			Ds:       []byte("aaa"),
 			PluginID: bookkeeping.TypeTablePluginID,
-			PluginData: bookkeeping.TypeTableLog{
+			Ds: bookkeeping.TypeTableLogCore{
 				MetaDataType: bookkeeping.MetaDataExpensesTypeID,
-				Label:        "a",
-				At:           time.Now(),
 			}.JSONBytes(),
 		}, nil
 	})
@@ -208,12 +199,9 @@ func TestSyncer3(t *testing.T) {
 		return syncer.Log{
 			OpType:   syncer.OpTypeAdd,
 			RecordID: "b",
-			Ds:       []byte("bbb"),
 			PluginID: bookkeeping.TypeTablePluginID,
-			PluginData: bookkeeping.TypeTableLog{
+			Ds: bookkeeping.TypeTableLogCore{
 				MetaDataType: bookkeeping.MetaDataExpensesTypeID,
-				Label:        "b",
-				At:           time.Now(),
 			}.JSONBytes(),
 		}, nil
 	})

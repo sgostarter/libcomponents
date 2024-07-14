@@ -55,7 +55,7 @@ func (impl *logPoolImpl) AddRecordLog(index uint64, log syncer.Log) error {
 			return
 		}
 
-		log.SeqID = index
+		log.SeqID = syncer.SeqIDN2S(index)
 
 		newV = append(newV, log)
 

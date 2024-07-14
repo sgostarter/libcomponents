@@ -72,7 +72,7 @@ func TestLogPool(t *testing.T) {
 
 	err = lp.AddRecordLog(1, log2)
 
-	log2.SeqID = 1
+	log2.SeqID = "1"
 
 	assert.Nil(t, err)
 

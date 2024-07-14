@@ -5,7 +5,6 @@ import (
 
 	"github.com/sgostarter/libcomponents/syncer"
 	"github.com/sgostarter/libeasygo/ptl"
-	"golang.org/x/exp/slices"
 )
 
 const (
@@ -75,9 +74,9 @@ func (impl *snapshotSyncTypeTableStorage) ApplyLog(log syncer.Log) error {
 		return ptl.NewCodeError(ptl.CodeErrNotExists)
 	}
 
-	var data TypeTableLog
+	var data TypeTableLogCore
 
-	err := json.Unmarshal(log.PluginData, &data)
+	err := json.Unmarshal(log.Ds, &data)
 	if err != nil {
 		return ptl.NewCodeError(ptl.CodeErrLogic)
 	}
@@ -90,20 +89,11 @@ func (impl *snapshotSyncTypeTableStorage) ApplyLog(log syncer.Log) error {
 	switch log.OpType {
 	case syncer.OpTypeAdd, syncer.OpTypeChange:
 		m[log.RecordID] = TypeRow{
-			ID:       log.RecordID,
-			Label:    data.Label,
-			Data:     log.Ds,
-			ParentID: data.ParentID,
-			At:       data.At,
+			ID:   log.RecordID,
+			Data: log.Ds,
 		}
 	case syncer.OpTypeDel:
-		oldTr, exists := m[log.RecordID]
-		if !exists {
-			return ptl.NewCodeError(ptl.CodeErrNotExists)
-		}
-
-		oldTr.ToID = data.ToRecordID
-		m[log.RecordID] = oldTr
+		delete(m, log.RecordID)
 	default:
 		return ptl.NewCodeError(ptl.CodeErrUnknown)
 	}
@@ -118,19 +108,11 @@ func (impl *snapshotSyncTypeTableStorage) GetSnapshotData() (json.RawMessage, er
 		incomeTypes = append(incomeTypes, row)
 	}
 
-	slices.SortFunc(incomeTypes, func(a, b TypeRow) int {
-		return a.At.Compare(b.At)
-	})
-
 	expensesTypesTypes := make([]TypeRow, 0, len(impl.expensesTypes))
 
 	for _, row := range impl.expensesTypes {
 		expensesTypesTypes = append(expensesTypesTypes, row)
 	}
-
-	slices.SortFunc(expensesTypesTypes, func(a, b TypeRow) int {
-		return a.At.Compare(b.At)
-	})
 
 	return TypeTableSnapshotData{
 		IncomeTypes:   incomeTypes,

@@ -31,9 +31,10 @@ func NewMFTypeTableEx(file string, storage stg.FileStorage, logger l.Wrapper) Ty
 }
 
 type typeRow struct {
-	Label    string
-	ParentID string
-	Data     []byte
+	Label      string
+	ParentID   string
+	ToParentID string
+	Data       []byte
 }
 
 type typeTableImpl struct {
@@ -54,9 +55,9 @@ func (impl *typeTableImpl) AfterLoad(vm map[string]*typeRow, err error) {
 		return
 	}
 
-	for id, row := range vm {
-		if row.ParentID != "" {
-			impl.validParentIDs[id] = true
+	for _, row := range vm {
+		if row.ToParentID == "" && row.ParentID != "" {
+			impl.validParentIDs[row.ParentID] = true
 		}
 	}
 }
@@ -72,6 +73,56 @@ func (impl *typeTableImpl) AfterSave(_ map[string]*typeRow, _ error) {
 func (impl *typeTableImpl) init(file string, storage stg.FileStorage) {
 	impl.d = mwf.NewMemWithFileEx[map[string]*typeRow, mwf.Serial, mwf.Lock](make(map[string]*typeRow),
 		&mwf.JSONSerial{}, &sync.RWMutex{}, file, storage, impl)
+}
+
+func (impl *typeTableImpl) Reset() {
+	_ = impl.d.Change(func(_ map[string]*typeRow) (newV map[string]*typeRow, err error) {
+		newV = make(map[string]*typeRow)
+
+		return
+	})
+
+	impl.validParentIDs = make(map[string]any)
+}
+
+func (impl *typeTableImpl) TestAdd(id, label, parentID string) (ok bool, err error) {
+	impl.d.Read(func(vm map[string]*typeRow) {
+		_, exists := vm[id]
+		if exists {
+			return
+		}
+
+		if parentID != "" {
+			if parentID == id {
+				return
+			}
+
+			var parentRow *typeRow
+
+			parentRow, ok = vm[parentID]
+			if !ok {
+				return
+			}
+
+			if parentRow.ToParentID != "" {
+				return
+			}
+
+			if parentRow.ParentID != "" {
+				return
+			}
+		}
+
+		for _, row := range vm {
+			if row.Label == label {
+				return
+			}
+		}
+
+		ok = true
+	})
+
+	return
 }
 
 func (impl *typeTableImpl) Add(id, label, parentID string, data []byte) error {
@@ -111,6 +162,14 @@ func (impl *typeTableImpl) Add(id, label, parentID string, data []byte) error {
 				return
 			}
 
+			if parentRow.ToParentID != "" {
+				err = ptl.NewCodeError(ptl.CodeErrConflict)
+
+				impl.logger.WithFields(l.StringField("id", id)).Error("add: parent transferred")
+
+				return
+			}
+
 			if parentRow.ParentID != "" {
 				err = ptl.NewCodeError(ptl.CodeErrConflict)
 
@@ -118,8 +177,6 @@ func (impl *typeTableImpl) Add(id, label, parentID string, data []byte) error {
 
 				return
 			}
-
-			impl.validParentIDs[parentID] = true
 		}
 
 		for cID, row := range newV {
@@ -133,6 +190,10 @@ func (impl *typeTableImpl) Add(id, label, parentID string, data []byte) error {
 			}
 		}
 
+		if parentID != "" {
+			impl.validParentIDs[parentID] = true
+		}
+
 		newV[id] = &typeRow{
 			Label:    label,
 			Data:     data,
@@ -143,7 +204,38 @@ func (impl *typeTableImpl) Add(id, label, parentID string, data []byte) error {
 	})
 }
 
-func (impl *typeTableImpl) Del(id string) error {
+func (impl *typeTableImpl) TestDel(id, toRecordID string) (ok bool, err error) {
+	impl.d.Read(func(vm map[string]*typeRow) {
+		if id == toRecordID {
+			return
+		}
+
+		_, exists := vm[id]
+		if !exists {
+			return
+		}
+
+		toRow, exists := vm[toRecordID]
+		if !exists {
+			return
+		}
+
+		if toRow.ToParentID != "" {
+			return
+		}
+
+		_, ok = impl.validParentIDs[id]
+		if ok {
+			return
+		}
+
+		ok = true
+	})
+
+	return
+}
+
+func (impl *typeTableImpl) Del(id, toRecordID string) error {
 	return impl.d.Change(func(v map[string]*typeRow) (newV map[string]*typeRow, err error) {
 		newV = v
 
@@ -151,42 +243,123 @@ func (impl *typeTableImpl) Del(id string) error {
 			newV = make(map[string]*typeRow)
 		}
 
+		if id == toRecordID {
+			err = ptl.NewCodeError(ptl.CodeErrConflict)
+
+			impl.logger.WithFields(l.StringField("id", id)).Error("del: trans to self")
+
+			return
+		}
+
 		row, ok := newV[id]
-		if ok { // nolint: nestif
-			if row.ParentID != "" {
-				var parentOk bool
+		if !ok {
+			err = ptl.NewCodeError(ptl.CodeErrNotExists)
 
-				for i, r := range newV {
-					if i == id {
-						continue
-					}
+			impl.logger.WithFields(l.StringField("id", id)).Error("del: not exists")
 
-					if r.ParentID == row.ParentID {
-						parentOk = true
+			return
+		}
 
-						break
-					}
+		toRow, ok := newV[toRecordID]
+		if !ok {
+			err = ptl.NewCodeError(ptl.CodeErrNotExists)
+
+			impl.logger.WithFields(l.StringField("id", id)).Error("del: to not exists")
+
+			return
+		}
+
+		if toRow.ToParentID != "" {
+			err = ptl.NewCodeError(ptl.CodeErrConflict)
+
+			impl.logger.WithFields(l.StringField("id", id)).Error("del: to has trans")
+
+			return
+		}
+
+		_, ok = impl.validParentIDs[id]
+		if ok {
+			err = ptl.NewCodeError(ptl.CodeErrConflict)
+
+			impl.logger.WithFields(l.StringField("id", id)).Error("del: has child node")
+
+			return
+		}
+
+		if row.ParentID != "" {
+			var parentOk bool
+
+			for i, r := range newV {
+				if i == id {
+					continue
 				}
 
-				if !parentOk {
-					delete(impl.validParentIDs, row.ParentID)
+				if r.ParentID == row.ParentID {
+					parentOk = true
+
+					break
 				}
+			}
+
+			if !parentOk {
+				delete(impl.validParentIDs, row.ParentID)
+			}
+		}
+
+		row.ToParentID = toRecordID
+
+		return
+	})
+}
+
+func (impl *typeTableImpl) TestChange(id, label, parentID string) (ok bool, err error) {
+	impl.d.Read(func(vm map[string]*typeRow) {
+		_, exists := vm[id]
+		if !exists {
+			return
+		}
+
+		// nolint: nestif
+		if parentID != "" {
+			if parentID == id {
+				return
 			}
 
 			_, ok = impl.validParentIDs[id]
 			if ok {
-				err = ptl.NewCodeError(ptl.CodeErrConflict)
-
-				impl.logger.WithFields(l.StringField("id", id)).Error("del: has child node")
-
 				return
 			}
 
-			delete(newV, id)
+			var parentRow *typeRow
+
+			parentRow, ok = vm[parentID]
+			if !ok {
+				return
+			}
+
+			if parentRow.ParentID != "" {
+				return
+			}
+
+			if parentRow.ToParentID != "" {
+				return
+			}
 		}
 
-		return
+		for cID, row := range vm {
+			if cID == id {
+				continue
+			}
+
+			if row.Label == label {
+				return
+			}
+		}
+
+		ok = true
 	})
+
+	return
 }
 
 // nolint: gocognit
@@ -247,7 +420,13 @@ func (impl *typeTableImpl) Change(id, label, parentID string, data []byte) error
 				return
 			}
 
-			impl.validParentIDs[parentID] = true
+			if parentRow.ToParentID != "" {
+				err = ptl.NewCodeError(ptl.CodeErrConflict)
+
+				impl.logger.WithFields(l.StringField("id", id)).Error("add: parent has trans")
+
+				return
+			}
 		}
 
 		if tr.ParentID != "" && tr.ParentID != parentID {
@@ -278,6 +457,10 @@ func (impl *typeTableImpl) Change(id, label, parentID string, data []byte) error
 
 		if checkParentOk && !parentOk {
 			delete(impl.validParentIDs, tr.ParentID)
+		}
+
+		if parentID != "" {
+			impl.validParentIDs[parentID] = true
 		}
 
 		tr.Label = label

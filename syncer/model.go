@@ -18,7 +18,7 @@ const (
 )
 
 type Log struct {
-	SeqID    uint64 `json:"seq_id"`
+	SeqID    string `json:"seq_id"`
 	OpType   OpType `json:"op_type,omitempty"`
 	RecordID string `json:"record_id"`
 	Ds       []byte `json:"ds,omitempty"`
@@ -29,8 +29,7 @@ type Log struct {
 	//
 	// plugin
 	//
-	PluginID   string          `json:"ex_id,omitempty"`
-	PluginData json.RawMessage `json:"plugin_data,omitempty"`
+	PluginID string `json:"plugin_id,omitempty"`
 }
 
 func EqualLog(log1, log2 Log) bool {

@@ -35,30 +35,13 @@ type storageImpl struct {
 	logger   l.Wrapper
 	dataRoot string
 
-	kv                kv.StorageTiny2
-	incomeTypeTable   TypeTable
-	expensesTypeTable TypeTable
+	kv kv.StorageTiny2
 }
 
 func (impl *storageImpl) init() {
 	_ = pathutils.MustDirExists(impl.dataRoot)
 
 	impl.kv = mwf.NewKVEx("kv.dat", rawfs.NewFSStorage(impl.dataRoot))
-	impl.incomeTypeTable = NewMFTypeTableEx(fmt.Sprintf("tt_%d.dat", MetaDataIncomeTypeID),
-		rawfs.NewFSStorage(impl.dataRoot), impl.logger)
-	impl.expensesTypeTable = NewMFTypeTableEx(fmt.Sprintf("tt_%d.dat", MetaDataExpensesTypeID),
-		rawfs.NewFSStorage(impl.dataRoot), impl.logger)
-}
-
-func (impl *storageImpl) GetTypeTable(t MetaDataType) TypeTable {
-	switch t {
-	case MetaDataIncomeTypeID:
-		return impl.incomeTypeTable
-	case MetaDataExpensesTypeID:
-		return impl.expensesTypeTable
-	}
-
-	return nil
 }
 
 func (impl *storageImpl) NewLogPool(idx int) (syncer.LogPool, error) {

@@ -2,7 +2,6 @@ package bookkeeping
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/sgostarter/libeasygo/ptl"
 )
@@ -12,18 +11,19 @@ const (
 )
 
 type TypeTable interface {
+	Reset()
+
+	TestAdd(id, label, parentID string) (ok bool, err error)
 	Add(id, label, parentID string, data []byte) error
-	Del(id string) error
+	TestDel(id, toRecordID string) (ok bool, err error)
+	Del(id, toRecordID string) error
+	TestChange(id, label, parentID string) (ok bool, err error)
 	Change(id, label, parentID string, data []byte) error
 }
 
 type TypeRow struct {
-	ID       string    `json:"id"`
-	Label    string    `json:"label"`
-	Data     []byte    `json:"data"`
-	ParentID string    `json:"parent_id"`
-	ToID     string    `json:"to_id"`
-	At       time.Time `json:"at"`
+	ID   string `json:"id"`
+	Data []byte `json:"data"`
 }
 
 type MetaDataType int
@@ -33,15 +33,11 @@ const (
 	MetaDataExpensesTypeID
 )
 
-type TypeTableLog struct {
+type TypeTableLogCore struct {
 	MetaDataType MetaDataType `json:"meta_data_type,omitempty"`
-	Label        string       `json:"label,omitempty"`
-	ParentID     string       `json:"parent_id,omitempty"`
-	ToRecordID   string       `json:"to_record_id,omitempty"`
-	At           time.Time    `json:"at,omitempty"`
 }
 
-func (ttl TypeTableLog) JSONBytes() json.RawMessage {
+func (ttl TypeTableLogCore) JSONBytes() json.RawMessage {
 	d, err := json.Marshal(ttl)
 	if err != nil {
 		return nil

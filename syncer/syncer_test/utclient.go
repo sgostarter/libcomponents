@@ -173,7 +173,7 @@ func (cli *UTClient) SyncFromServer() (err error) {
 				cli.applySnapshot(log.Ds)
 			}
 
-			cli.seqID = syncer.SeqIDN2S(log.SeqID)
+			cli.seqID = log.SeqID
 		} else {
 			cli.t.Log("invalid plugin id", log.PluginID)
 		}

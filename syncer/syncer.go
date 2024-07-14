@@ -16,7 +16,9 @@ const (
 	kvNextLogIDOnCurrentPoolKey = "nextLogIDOnCurrentPool"
 )
 
-func NewSyncer(ctx context.Context, store Storage, snapshotLogCount uint64, logger l.Wrapper) Syncer {
+type LogInit func(syncer Syncer)
+
+func NewSyncer(ctx context.Context, logInit LogInit, store Storage, snapshotLogCount uint64, logger l.Wrapper) Syncer {
 	if logger == nil {
 		logger = l.NewNopLoggerWrapper()
 	}
@@ -32,6 +34,7 @@ func NewSyncer(ctx context.Context, store Storage, snapshotLogCount uint64, logg
 	impl := &syncerImpl{
 		ctx:              ctx,
 		ctxCancel:        cancel,
+		logInit:          logInit,
 		logger:           logger,
 		store:            store,
 		snapshotLogCount: snapshotLogCount,
@@ -47,9 +50,9 @@ type syncerImpl struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc
 	wg        sync.WaitGroup
-
-	logger l.Wrapper
-	store  Storage
+	logInit   LogInit
+	logger    l.Wrapper
+	store     Storage
 
 	snapshotLogCount uint64
 
@@ -71,6 +74,8 @@ func (impl *syncerImpl) init() {
 	impl.currentLogPoolIndex = cast.ToInt(vs[0])
 	impl.nextLogIDOnCurrentPool = cast.ToUint64(vs[1])
 
+	needInit := impl.currentLogPoolIndex == 0 && impl.nextLogIDOnCurrentPool == 0
+
 	impl.logPool, err = impl.store.NewLogPool(impl.currentLogPoolIndex)
 	if err != nil {
 		impl.logger.WithFields(l.ErrorField(err)).Fatal("get log pool")
@@ -78,6 +83,12 @@ func (impl *syncerImpl) init() {
 
 	impl.wg.Add(1)
 	go impl.snapShotBuildRoutine()
+
+	if needInit {
+		if impl.logInit != nil {
+			impl.logInit(impl)
+		}
+	}
 }
 
 func (impl *syncerImpl) getPoolIndex() (poolIndex int, logIDonPool uint64) {
@@ -329,7 +340,7 @@ func (impl *syncerImpl) GetAllLogs(startSeqID string) (logs []Log, err error) {
 			}
 
 			logs = append(logs, Log{
-				SeqID:  uint64(lastPoolIndex)*impl.snapshotLogCount - 1,
+				SeqID:  SeqIDN2S(uint64(lastPoolIndex)*impl.snapshotLogCount - 1),
 				OpType: OpTypeSnapshot,
 				Ds:     data,
 			})
@@ -351,7 +362,7 @@ func (impl *syncerImpl) GetAllLogs(startSeqID string) (logs []Log, err error) {
 		}
 
 		for idx, log := range poolLogs {
-			log.SeqID = uint64(startPoolIndex)*impl.snapshotLogCount + uint64(idx) + startLogIndexOnPool
+			log.SeqID = SeqIDN2S(uint64(startPoolIndex)*impl.snapshotLogCount + uint64(idx) + startLogIndexOnPool)
 
 			logs = append(logs, log)
 		}
@@ -370,7 +381,7 @@ func (impl *syncerImpl) GetAllLogs(startSeqID string) (logs []Log, err error) {
 	}
 
 	for idx, log := range poolLogs {
-		log.SeqID = uint64(startPoolIndex)*impl.snapshotLogCount + uint64(idx) + startLogIndexOnPool
+		log.SeqID = SeqIDN2S(uint64(startPoolIndex)*impl.snapshotLogCount + uint64(idx) + startLogIndexOnPool)
 
 		logs = append(logs, log)
 	}

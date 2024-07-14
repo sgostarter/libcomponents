@@ -49,10 +49,10 @@ func TestTypeTable(t *testing.T) {
 	err = tt.Change("2", "1", "", []byte("x2"))
 	assert.NotNil(t, err)
 
-	err = tt.Del("2")
+	err = tt.Del("2", "1")
 	assert.Nil(t, err)
 
-	err = tt.Add("2", "2", "", []byte("222"))
+	err = tt.Add("22", "2", "", []byte("222"))
 	assert.Nil(t, err)
 }
 
@@ -83,12 +83,12 @@ func TestTypeTable2(t *testing.T) {
 	err = tt.Change("1", "x", "2", []byte("xxx"))
 	assert.NotNil(t, err)
 
-	err = tt.Del("1")
+	err = tt.Del("1", "2")
 	assert.NotNil(t, err)
 
-	err = tt.Del("4")
+	err = tt.Del("4", "2")
 	assert.Nil(t, err)
 
-	err = tt.Del("1")
+	err = tt.Del("1", "2")
 	assert.Nil(t, err)
 }
