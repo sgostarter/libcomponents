@@ -62,16 +62,16 @@ type accountImpl struct {
 }
 
 func (impl *accountImpl) Register(accountName, password string) (uid uint64, err error) {
-	return impl.RegisterEx(0, accountName, password)
+	return impl.RegisterEx(0, accountName, password, nil)
 }
 
-func (impl *accountImpl) RegisterEx(userID uint64, accountName, password string) (uid uint64, err error) {
+func (impl *accountImpl) RegisterEx(userID uint64, accountName, password string, data []byte) (uid uint64, err error) {
 	hashedPassword, err := crypt.HashPassword(password, impl.cfg.PasswordHashIterCount)
 	if err != nil {
 		return
 	}
 
-	uid, err = impl.storage.AddAccountEx(userID, accountName, hashedPassword)
+	uid, err = impl.storage.AddAccountEx(userID, accountName, hashedPassword, data)
 
 	return
 }
@@ -88,7 +88,7 @@ func (impl *accountImpl) Login(accountName, password string) (uid uint64, token 
 			return
 		}
 
-		err = impl.storage.SetHashedPassword(accountName, userHashedPassword)
+		err = impl.storage.SetHashedPassword(uid, userHashedPassword)
 		if err != nil {
 			return
 		}
@@ -106,7 +106,18 @@ func (impl *accountImpl) Login(accountName, password string) (uid uint64, token 
 		return
 	}
 
-	err = impl.storage.AddToken(token, time.Now().Add(impl.cfg.TokenExpiresAfter))
+	tokenExpiresAfter := impl.cfg.TokenExpiresAfter
+
+	advanceConfig, err := impl.storage.GetAdvanceConfig(uid)
+	if err != nil {
+		return
+	}
+
+	if advanceConfig != nil && advanceConfig.TokenExpiresAfter > 0 {
+		tokenExpiresAfter = advanceConfig.TokenExpiresAfter
+	}
+
+	err = impl.storage.AddToken(token, uid, time.Now().Add(tokenExpiresAfter))
 	if err != nil {
 		return
 	}
@@ -114,8 +125,25 @@ func (impl *accountImpl) Login(accountName, password string) (uid uint64, token 
 	return
 }
 
+func (impl *accountImpl) SetAdvanceConfig(uid uint64, cfg *AdvanceConfig) (err error) {
+	err = impl.storage.SetAdvanceConfig(uid, cfg)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (impl *accountImpl) GetAdvanceConfig(uid uint64) (cfg *AdvanceConfig, err error) {
+	return impl.storage.GetAdvanceConfig(uid)
+}
+
 func (impl *accountImpl) Who(token string) (uid uint64, accountName string, err error) {
 	return impl.who(token)
+}
+
+func (impl *accountImpl) GetData(uid uint64) (data []byte, err error) {
+	return impl.storage.GetAccountData(uid)
 }
 
 func (impl *accountImpl) Logout(token string) error {
@@ -127,7 +155,7 @@ func (impl *accountImpl) HasAccount() (f bool, err error) {
 }
 
 func (impl *accountImpl) ChangePassword(token string, newPassword string) (err error) {
-	_, accountName, err := impl.who(token)
+	uid, _, err := impl.who(token)
 	if err != nil {
 		return
 	}
@@ -137,28 +165,35 @@ func (impl *accountImpl) ChangePassword(token string, newPassword string) (err e
 		return
 	}
 
-	err = impl.storage.SetHashedPassword(accountName, hashedPassword)
+	err = impl.storage.SetHashedPassword(uid, hashedPassword)
 
 	return
 }
 
 func (impl *accountImpl) ResetPassword(accountName string, newPassword string) (err error) {
+	uid, exists, err := impl.storage.GetIDFromAccountName(accountName)
+	if err != nil {
+		return
+	}
+
+	if !exists {
+		err = commerr.ErrNotFound
+
+		return
+	}
+
 	hashedPassword, err := crypt.HashPassword(newPassword, impl.cfg.PasswordHashIterCount)
 	if err != nil {
 		return
 	}
 
-	err = impl.storage.SetHashedPassword(accountName, hashedPassword)
+	err = impl.storage.SetHashedPassword(uid, hashedPassword)
 
 	return
 }
 
 func (impl *accountImpl) ListUsers(createdAtStart, createdAtFinish int64) (accounts []User, err error) {
 	return impl.storage.ListUsers(createdAtStart, createdAtFinish)
-}
-
-func (impl *accountImpl) UserID2Name(uid uint64) (userName string, err error) {
-	return impl.storage.UserID2Name(uid)
 }
 
 func (impl *accountImpl) SetPropertyData(token string, d interface{}) (err error) {

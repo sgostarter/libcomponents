@@ -12,6 +12,7 @@ import (
 	"github.com/sgostarter/libcomponents/account"
 	"github.com/sgostarter/libeasygo/stg/fs/rawfs"
 	"github.com/sgostarter/libeasygo/stg/mwf"
+	"github.com/spf13/cast"
 )
 
 func NewFMAccountStorage(root string, storage stg.FileStorage) account.Storage {
@@ -24,16 +25,16 @@ func NewFMAccountStorageEx(root string, storage stg.FileStorage, prettySerial bo
 	}
 
 	impl := &fsAccountStorageImpl{
-		accountStorage: mwf.NewMemWithFile[map[string]*AccountInfo, mwf.Serial, mwf.Lock](
-			make(map[string]*AccountInfo), &mwf.JSONSerial{
+		accountStorage: mwf.NewMemWithFile[map[uint64]*AccountInfo, mwf.Serial, mwf.Lock](
+			make(map[uint64]*AccountInfo), &mwf.JSONSerial{
 				MarshalIndent: prettySerial,
 			}, &sync.RWMutex{}, filepath.Join(root, "accounts.json"), storage),
-		tokenStorage: mwf.NewMemWithFile[map[string]time.Time, mwf.Serial, mwf.Lock](
-			make(map[string]time.Time), &mwf.JSONSerial{
+		tokenStorage: mwf.NewMemWithFile[map[string]*TokenInfo, mwf.Serial, mwf.Lock](
+			make(map[string]*TokenInfo), &mwf.JSONSerial{
 				MarshalIndent: prettySerial,
 			}, &sync.RWMutex{}, filepath.Join(root, "tokens.json"), storage),
-		accountPropertyStorage: mwf.NewMemWithFile[map[string][]byte, mwf.Serial, mwf.Lock](
-			make(map[string][]byte), &mwf.JSONSerial{
+		accountPropertyStorage: mwf.NewMemWithFile[map[uint64][]byte, mwf.Serial, mwf.Lock](
+			make(map[uint64][]byte), &mwf.JSONSerial{
 				MarshalIndent: prettySerial,
 			}, &sync.RWMutex{}, filepath.Join(root, "accountProperties.json"), storage),
 	}
@@ -43,26 +44,31 @@ func NewFMAccountStorageEx(root string, storage stg.FileStorage, prettySerial bo
 	return impl
 }
 
+type TokenInfo struct {
+	ExpiredAt time.Time
+	UID       uint64
+}
+
 type fsAccountStorageImpl struct {
-	accountStorage          *mwf.MemWithFile[map[string]*AccountInfo, mwf.Serial, mwf.Lock]
-	tokenStorage            *mwf.MemWithFile[map[string]time.Time, mwf.Serial, mwf.Lock]
-	accountPropertyStorage  *mwf.MemWithFile[map[string][]byte, mwf.Serial, mwf.Lock]
+	accountStorage          *mwf.MemWithFile[map[uint64]*AccountInfo, mwf.Serial, mwf.Lock] // uid -> user info
+	tokenStorage            *mwf.MemWithFile[map[string]*TokenInfo, mwf.Serial, mwf.Lock]   // token -> uid, expireAt
+	accountPropertyStorage  *mwf.MemWithFile[map[uint64][]byte, mwf.Serial, mwf.Lock]       // uid -> property
 	lastCleanExpiredTokenAt time.Time
 
-	userID2Name sync.Map
+	accountName2UserID sync.Map // account name -> uid
 }
 
 func (impl *fsAccountStorageImpl) init() {
-	_ = impl.accountStorage.Change(func(oldM map[string]*AccountInfo) (newM map[string]*AccountInfo, err error) {
+	_ = impl.accountStorage.Change(func(oldM map[uint64]*AccountInfo) (newM map[uint64]*AccountInfo, err error) {
 		newM = oldM
 		if len(newM) == 0 {
-			newM = make(map[string]*AccountInfo)
+			newM = make(map[uint64]*AccountInfo)
 		}
 
 		var changed bool
 
 		for _, info := range newM {
-			impl.userID2Name.Store(info.ID, info.AccountName)
+			impl.accountName2UserID.Store(info.AccountName, info.ID)
 
 			if info.CreateAt == 0 {
 				info.CreateAt = time.Now().Unix()
@@ -82,17 +88,30 @@ func (impl *fsAccountStorageImpl) init() {
 }
 
 func (impl *fsAccountStorageImpl) AddAccount(accountName, hashedPassword string) (uid uint64, err error) {
-	return impl.AddAccountEx(0, accountName, hashedPassword)
+	return impl.AddAccountEx(0, accountName, hashedPassword, nil)
 }
 
-func (impl *fsAccountStorageImpl) AddAccountEx(userID uint64, accountName, hashedPassword string) (uid uint64, err error) {
-	err = impl.accountStorage.Change(func(oldM map[string]*AccountInfo) (newM map[string]*AccountInfo, err error) {
+func (impl *fsAccountStorageImpl) GetIDFromAccountName(accountName string) (uid uint64, exists bool, err error) {
+	i, ok := impl.accountName2UserID.Load(accountName)
+	if !ok {
+		return
+	}
+
+	uid = cast.ToUint64(i)
+	exists = true
+
+	return
+}
+
+func (impl *fsAccountStorageImpl) AddAccountEx(userID uint64, accountName, hashedPassword string, data []byte) (uid uint64, err error) {
+	err = impl.accountStorage.Change(func(oldM map[uint64]*AccountInfo) (newM map[uint64]*AccountInfo, err error) {
 		newM = oldM
 		if len(newM) == 0 {
-			newM = make(map[string]*AccountInfo)
+			newM = make(map[uint64]*AccountInfo)
 		}
 
-		if _, ok := newM[accountName]; ok {
+		_, exists, _ := impl.GetIDFromAccountName(accountName)
+		if exists {
 			err = commerr.ErrAlreadyExists
 
 			return
@@ -102,24 +121,24 @@ func (impl *fsAccountStorageImpl) AddAccountEx(userID uint64, accountName, hashe
 
 		if uid == 0 {
 			uid = snowflake.ID()
-		} else {
-			for _, info := range newM {
-				if info.ID == uid {
-					err = commerr.ErrAlreadyExists
-
-					return
-				}
-			}
 		}
 
-		newM[accountName] = &AccountInfo{
+		_, exists = newM[uid]
+		if exists {
+			err = commerr.ErrAlreadyExists
+
+			return
+		}
+
+		newM[uid] = &AccountInfo{
 			ID:             uid,
 			AccountName:    accountName,
 			HashedPassword: hashedPassword,
 			CreateAt:       time.Now().Unix(),
+			Data:           data,
 		}
 
-		impl.userID2Name.Store(uid, accountName)
+		impl.accountName2UserID.Store(accountName, uid)
 
 		return
 	})
@@ -127,20 +146,62 @@ func (impl *fsAccountStorageImpl) AddAccountEx(userID uint64, accountName, hashe
 	return
 }
 
-func (impl *fsAccountStorageImpl) SetHashedPassword(accountName, hashedPassword string) (err error) {
-	err = impl.accountStorage.Change(func(oldM map[string]*AccountInfo) (newM map[string]*AccountInfo, err error) {
+func (impl *fsAccountStorageImpl) SetHashedPassword(uid uint64, hashedPassword string) (err error) {
+	err = impl.accountStorage.Change(func(oldM map[uint64]*AccountInfo) (newM map[uint64]*AccountInfo, err error) {
 		newM = oldM
 		if len(newM) == 0 {
-			newM = make(map[string]*AccountInfo)
+			newM = make(map[uint64]*AccountInfo)
 		}
 
-		if _, ok := newM[accountName]; !ok {
+		if _, ok := newM[uid]; !ok {
 			err = commerr.ErrNotFound
 
 			return
 		}
 
-		newM[accountName].HashedPassword = hashedPassword
+		newM[uid].HashedPassword = hashedPassword
+
+		return
+	})
+
+	return
+}
+
+func (impl *fsAccountStorageImpl) SetAdvanceConfig(uid uint64, cfg *account.AdvanceConfig) (err error) {
+	err = impl.accountStorage.Change(func(oldM map[uint64]*AccountInfo) (newM map[uint64]*AccountInfo, err error) {
+		newM = oldM
+		if len(newM) == 0 {
+			newM = make(map[uint64]*AccountInfo)
+		}
+
+		if _, ok := newM[uid]; !ok {
+			err = commerr.ErrNotFound
+
+			return
+		}
+
+		newM[uid].Cfg = cfg
+
+		return
+	})
+
+	return
+}
+
+func (impl *fsAccountStorageImpl) GetAdvanceConfig(uid uint64) (cfg *account.AdvanceConfig, err error) {
+	err = impl.accountStorage.Change(func(oldM map[uint64]*AccountInfo) (newM map[uint64]*AccountInfo, err error) {
+		newM = oldM
+		if len(newM) == 0 {
+			newM = make(map[uint64]*AccountInfo)
+		}
+
+		if _, ok := newM[uid]; !ok {
+			err = commerr.ErrNotFound
+
+			return
+		}
+
+		cfg = newM[uid].Cfg
 
 		return
 	})
@@ -149,8 +210,19 @@ func (impl *fsAccountStorageImpl) SetHashedPassword(accountName, hashedPassword 
 }
 
 func (impl *fsAccountStorageImpl) FindAccount(accountName string) (uid uint64, hashedPassword string, err error) {
-	impl.accountStorage.Read(func(m map[string]*AccountInfo) {
-		if info, ok := m[accountName]; ok {
+	uid, exists, err := impl.GetIDFromAccountName(accountName)
+	if err != nil {
+		return
+	}
+
+	if !exists {
+		err = commerr.ErrNotFound
+
+		return
+	}
+
+	impl.accountStorage.Read(func(m map[uint64]*AccountInfo) {
+		if info, ok := m[uid]; ok {
 			uid = info.ID
 			hashedPassword = info.HashedPassword
 		} else {
@@ -161,8 +233,20 @@ func (impl *fsAccountStorageImpl) FindAccount(accountName string) (uid uint64, h
 	return
 }
 
+func (impl *fsAccountStorageImpl) GetAccountData(uid uint64) (data []byte, err error) {
+	impl.accountStorage.Read(func(m map[uint64]*AccountInfo) {
+		if info, ok := m[uid]; ok {
+			data = info.Data
+		} else {
+			err = commerr.ErrNotFound
+		}
+	})
+
+	return
+}
+
 func (impl *fsAccountStorageImpl) HasAccount() (f bool, err error) {
-	impl.accountStorage.Read(func(m map[string]*AccountInfo) {
+	impl.accountStorage.Read(func(m map[uint64]*AccountInfo) {
 		f = len(m) > 0
 	})
 
@@ -170,7 +254,7 @@ func (impl *fsAccountStorageImpl) HasAccount() (f bool, err error) {
 }
 
 func (impl *fsAccountStorageImpl) ListUsers(createdAtStart, createdAtFinish int64) (accounts []account.User, err error) {
-	impl.accountStorage.Read(func(m map[string]*AccountInfo) {
+	impl.accountStorage.Read(func(m map[uint64]*AccountInfo) {
 		accounts = make([]account.User, 0, len(m))
 
 		for _, info := range m {
@@ -190,29 +274,49 @@ func (impl *fsAccountStorageImpl) ListUsers(createdAtStart, createdAtFinish int6
 	return
 }
 
-func (impl *fsAccountStorageImpl) UserID2Name(uid uint64) (userName string, err error) {
-	i, ok := impl.userID2Name.Load(uid)
-	if !ok {
-		err = commerr.ErrNotFound
+func (impl *fsAccountStorageImpl) RenameAccountName(uid uint64, newAccountName string) error {
+	return impl.accountStorage.Change(func(oldM map[uint64]*AccountInfo) (newM map[uint64]*AccountInfo, err error) {
+		newM = oldM
+		if len(newM) == 0 {
+			newM = make(map[uint64]*AccountInfo)
+		}
+
+		ai, ok := newM[uid]
+		if !ok {
+			err = commerr.ErrNotFound
+
+			return
+		}
+
+		if ai.AccountName == newAccountName {
+			return
+		}
+
+		_, exists, err := impl.GetIDFromAccountName(newAccountName)
+		if err != nil {
+			return
+		}
+
+		if exists {
+			err = commerr.ErrAlreadyExists
+
+			return
+		}
+
+		impl.accountName2UserID.Delete(ai.AccountName)
+		impl.accountName2UserID.Store(newAccountName, uid)
+
+		newM[uid].AccountName = newAccountName
 
 		return
-	}
-
-	userName, ok = i.(string)
-	if !ok {
-		err = commerr.ErrInternal
-
-		return
-	}
-
-	return
+	})
 }
 
-func (impl *fsAccountStorageImpl) cleanExpiredTokenOnSafe(m map[string]time.Time) (cleanedCount int) {
+func (impl *fsAccountStorageImpl) cleanExpiredTokenOnSafe(m map[string]*TokenInfo) (cleanedCount int) {
 	impl.lastCleanExpiredTokenAt = time.Now()
 
-	for k, expiredAt := range m {
-		if time.Now().After(expiredAt) {
+	for k, tokenInfo := range m {
+		if time.Now().After(tokenInfo.ExpiredAt) {
 			delete(m, k)
 
 			cleanedCount++
@@ -222,11 +326,11 @@ func (impl *fsAccountStorageImpl) cleanExpiredTokenOnSafe(m map[string]time.Time
 	return
 }
 
-func (impl *fsAccountStorageImpl) AddToken(token string, expiredAt time.Time) error {
-	return impl.tokenStorage.Change(func(oldM map[string]time.Time) (newM map[string]time.Time, err error) {
+func (impl *fsAccountStorageImpl) AddToken(token string, uid uint64, expiredAt time.Time) error {
+	return impl.tokenStorage.Change(func(oldM map[string]*TokenInfo) (newM map[string]*TokenInfo, err error) {
 		newM = oldM
 		if len(newM) == 0 {
-			newM = make(map[string]time.Time)
+			newM = make(map[string]*TokenInfo)
 		}
 
 		if _, ok := newM[token]; ok {
@@ -237,17 +341,20 @@ func (impl *fsAccountStorageImpl) AddToken(token string, expiredAt time.Time) er
 
 		impl.cleanExpiredTokenOnSafe(newM)
 
-		newM[token] = expiredAt
+		newM[token] = &TokenInfo{
+			ExpiredAt: expiredAt,
+			UID:       uid,
+		}
 
 		return
 	})
 }
 
 func (impl *fsAccountStorageImpl) DelToken(token string) error {
-	return impl.tokenStorage.Change(func(oldM map[string]time.Time) (newM map[string]time.Time, err error) {
+	return impl.tokenStorage.Change(func(oldM map[string]*TokenInfo) (newM map[string]*TokenInfo, err error) {
 		newM = oldM
 		if len(newM) == 0 {
-			newM = make(map[string]time.Time)
+			newM = make(map[string]*TokenInfo)
 		}
 
 		if _, ok := newM[token]; !ok {
@@ -265,15 +372,15 @@ func (impl *fsAccountStorageImpl) DelToken(token string) error {
 }
 
 func (impl *fsAccountStorageImpl) TokenExists(token string, renewDuration time.Duration) (exists bool, err error) {
-	impl.tokenStorage.Read(func(m map[string]time.Time) {
+	impl.tokenStorage.Read(func(m map[string]*TokenInfo) {
 		_, exists = m[token]
 	})
 
 	if exists && renewDuration > 0 {
-		_ = impl.tokenStorage.Change(func(oldM map[string]time.Time) (newM map[string]time.Time, err error) {
+		_ = impl.tokenStorage.Change(func(oldM map[string]*TokenInfo) (newM map[string]*TokenInfo, err error) {
 			newM = oldM
 			if len(newM) == 0 {
-				newM = make(map[string]time.Time)
+				newM = make(map[string]*TokenInfo)
 			}
 
 			var i any
@@ -294,17 +401,17 @@ func (impl *fsAccountStorageImpl) TokenExists(token string, renewDuration time.D
 
 			expiredAt = expiredAt.Add(renewDuration)
 
-			newM[token] = expiredAt
+			newM[token].ExpiredAt = expiredAt
 
 			return
 		})
 	}
 
 	if time.Since(impl.lastCleanExpiredTokenAt) > time.Hour {
-		_ = impl.tokenStorage.Change(func(oldM map[string]time.Time) (newM map[string]time.Time, err error) {
+		_ = impl.tokenStorage.Change(func(oldM map[string]*TokenInfo) (newM map[string]*TokenInfo, err error) {
 			newM = oldM
 			if len(newM) == 0 {
-				newM = make(map[string]time.Time)
+				newM = make(map[string]*TokenInfo)
 			}
 
 			if impl.cleanExpiredTokenOnSafe(newM) <= 0 {
@@ -320,41 +427,55 @@ func (impl *fsAccountStorageImpl) TokenExists(token string, renewDuration time.D
 	return
 }
 
-func (impl *fsAccountStorageImpl) SetPropertyData(accountName string, d interface{}) error {
+func (impl *fsAccountStorageImpl) SetPropertyData(accountName string, d interface{}) (err error) {
+	uid, exists, err := impl.GetIDFromAccountName(accountName)
+	if err != nil {
+		return
+	}
+
+	if !exists {
+		err = commerr.ErrNotFound
+
+		return
+	}
+
+	return impl.SetPropertyDataByUserID(uid, d)
+}
+
+func (impl *fsAccountStorageImpl) SetPropertyDataByUserID(uid uint64, d interface{}) error {
 	dd, err := json.Marshal(d)
 	if err != nil {
 		return err
 	}
 
-	return impl.accountPropertyStorage.Change(func(oldM map[string][]byte) (newM map[string][]byte, err error) {
+	return impl.accountPropertyStorage.Change(func(oldM map[uint64][]byte) (newM map[uint64][]byte, err error) {
 		newM = oldM
 		if len(newM) == 0 {
-			newM = make(map[string][]byte)
+			newM = make(map[uint64][]byte)
 		}
 
-		newM[accountName] = dd
+		newM[uid] = dd
 
 		return
 	})
 }
 
-func (impl *fsAccountStorageImpl) SetPropertyDataByUserID(uid uint64, d interface{}) error {
-	i, ok := impl.userID2Name.Load(uid)
-	if !ok {
+func (impl *fsAccountStorageImpl) GetPropertyData(accountName string, d interface{}) error {
+	uid, exists, err := impl.GetIDFromAccountName(accountName)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
 		return commerr.ErrNotFound
 	}
 
-	userName, ok := i.(string)
-	if !ok {
-		return commerr.ErrInternal
-	}
-
-	return impl.SetPropertyData(userName, d)
+	return impl.GetPropertyDataByUserID(uid, d)
 }
 
-func (impl *fsAccountStorageImpl) GetPropertyData(accountName string, d interface{}) (err error) {
-	impl.accountPropertyStorage.Read(func(m map[string][]byte) {
-		if dd, ok := m[accountName]; ok {
+func (impl *fsAccountStorageImpl) GetPropertyDataByUserID(uid uint64, d interface{}) (err error) {
+	impl.accountPropertyStorage.Read(func(m map[uint64][]byte) {
+		if dd, ok := m[uid]; ok {
 			err = json.Unmarshal(dd, d)
 		} else {
 			err = commerr.ErrNotFound
@@ -362,18 +483,4 @@ func (impl *fsAccountStorageImpl) GetPropertyData(accountName string, d interfac
 	})
 
 	return
-}
-
-func (impl *fsAccountStorageImpl) GetPropertyDataByUserID(uid uint64, d interface{}) error {
-	i, ok := impl.userID2Name.Load(uid)
-	if !ok {
-		return commerr.ErrNotFound
-	}
-
-	userName, ok := i.(string)
-	if !ok {
-		return commerr.ErrInternal
-	}
-
-	return impl.GetPropertyData(userName, d)
 }

@@ -3,7 +3,6 @@ package syncer
 import (
 	"encoding/json"
 	"reflect"
-	"time"
 
 	"github.com/sgostarter/libeasygo/stg/kv"
 )
@@ -109,7 +108,7 @@ type RecordRow struct {
 	UpdateFlag UpdateFlag `json:"update_flag"`
 	Deleted    bool       `json:"deleted"`
 	Data       []byte     `json:"data"`
-	At         time.Time  `json:"at"`
+	At         int64      `json:"at"`
 }
 
 type SnapshotRecordCache interface {
