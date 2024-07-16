@@ -56,7 +56,15 @@ func (impl *snapshotStorageImpl) GetSnapshotData() ([]syncer.RecordRow, error) {
 	}
 
 	slices.SortFunc(records, func(a, b syncer.RecordRow) int {
-		return a.At.Compare(b.At)
+		if a.At == b.At {
+			return 0
+		}
+
+		if a.At < b.At {
+			return -1
+		}
+
+		return 1
 	})
 
 	return records, nil
