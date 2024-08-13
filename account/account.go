@@ -125,6 +125,12 @@ func (impl *accountImpl) Login(accountName, password string) (uid uint64, token 
 	return
 }
 
+func (impl *accountImpl) RenameAccountName(uid uint64, newAccountName string) (err error) {
+	err = impl.storage.RenameAccountName(uid, newAccountName)
+
+	return
+}
+
 func (impl *accountImpl) SetAdvanceConfig(uid uint64, cfg *AdvanceConfig) (err error) {
 	err = impl.storage.SetAdvanceConfig(uid, cfg)
 	if err != nil {
@@ -154,12 +160,7 @@ func (impl *accountImpl) HasAccount() (f bool, err error) {
 	return impl.storage.HasAccount()
 }
 
-func (impl *accountImpl) ChangePassword(token string, newPassword string) (err error) {
-	uid, _, err := impl.who(token)
-	if err != nil {
-		return
-	}
-
+func (impl *accountImpl) ChangePassword(uid uint64, newPassword string) (err error) {
 	hashedPassword, err := crypt.HashPassword(newPassword, impl.cfg.PasswordHashIterCount)
 	if err != nil {
 		return
