@@ -16,6 +16,7 @@ type Account interface {
 	Register(accountName, password string) (uid uint64, err error)
 	RegisterEx(userID uint64, accountName, password string, data []byte) (uid uint64, err error)
 	Login(accountName, password string) (uid uint64, token string, err error)
+	GetAccount(uid uint64) (accountName string, hashedPassword string, err error)
 	RenameAccountName(uid uint64, newAccountName string) (err error)
 	SetAdvanceConfig(uid uint64, cfg *AdvanceConfig) error
 	GetAdvanceConfig(uid uint64) (cfg *AdvanceConfig, err error)
@@ -42,6 +43,7 @@ type Storage interface {
 	SetAdvanceConfig(uid uint64, cfg *AdvanceConfig) (err error)
 	GetAdvanceConfig(uid uint64) (cfg *AdvanceConfig, err error)
 	FindAccount(accountName string) (uid uint64, hashedPassword string, err error)
+	GetAccount(uid uint64) (accountName string, hashedPassword string, err error)
 	GetAccountData(uid uint64) (data []byte, err error)
 	HasAccount() (f bool, err error)
 	ListUsers(createdAtStart, createdAtFinish int64) (accounts []User, err error)

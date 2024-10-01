@@ -125,6 +125,10 @@ func (impl *accountImpl) Login(accountName, password string) (uid uint64, token 
 	return
 }
 
+func (impl *accountImpl) GetAccount(uid uint64) (accountName string, hashedPassword string, err error) {
+	return impl.storage.GetAccount(uid)
+}
+
 func (impl *accountImpl) RenameAccountName(uid uint64, newAccountName string) (err error) {
 	err = impl.storage.RenameAccountName(uid, newAccountName)
 

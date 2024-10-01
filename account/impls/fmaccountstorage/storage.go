@@ -233,6 +233,19 @@ func (impl *fsAccountStorageImpl) FindAccount(accountName string) (uid uint64, h
 	return
 }
 
+func (impl *fsAccountStorageImpl) GetAccount(uid uint64) (accountName string, hashedPassword string, err error) {
+	impl.accountStorage.Read(func(m map[uint64]*AccountInfo) {
+		if info, ok := m[uid]; ok {
+			accountName = info.AccountName
+			hashedPassword = info.HashedPassword
+		} else {
+			err = commerr.ErrNotFound
+		}
+	})
+
+	return
+}
+
 func (impl *fsAccountStorageImpl) GetAccountData(uid uint64) (data []byte, err error) {
 	impl.accountStorage.Read(func(m map[uint64]*AccountInfo) {
 		if info, ok := m[uid]; ok {
