@@ -7,7 +7,7 @@ import (
 	"github.com/sgostarter/i/l"
 )
 
-func NewTrafficPackage(storage Storage, logger l.Wrapper) TrafficPackage {
+func NewTrafficPackage(stableID string, storage Storage, logger l.Wrapper) TrafficPackage {
 	if logger == nil {
 		logger = l.NewNopLoggerWrapper()
 	}
@@ -19,14 +19,16 @@ func NewTrafficPackage(storage Storage, logger l.Wrapper) TrafficPackage {
 	}
 
 	return &trafficPackageImpl{
-		logger:  logger,
-		storage: storage,
+		logger:   logger,
+		stableID: stableID,
+		storage:  storage,
 	}
 }
 
 type trafficPackageImpl struct {
-	logger  l.Wrapper
-	storage Storage
+	logger   l.Wrapper
+	stableID string
+	storage  Storage
 }
 
 func (impl *trafficPackageImpl) GetPackageInfo(id, packageID uint64) (PackageInfo, error) {
@@ -97,6 +99,10 @@ func (impl *trafficPackageImpl) ConsumeAmount(id uint64, _ time.Time, n int64, a
 	err = impl.storage.Consume(id, cds, at, note)
 
 	return
+}
+
+func (impl *trafficPackageImpl) GetStableID() string {
+	return impl.stableID
 }
 
 func (impl *trafficPackageImpl) TryConsumeAmount(id uint64, _ time.Time, n int64, at time.Time, note string) (rn int64, err error) {

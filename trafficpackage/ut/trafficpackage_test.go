@@ -14,7 +14,7 @@ import (
 func Test(t *testing.T) {
 	_ = os.RemoveAll("./ut-data")
 
-	tp := trafficpackage.NewTrafficPackage(fmstorage.NewFMStorage("ut-data", nil), nil)
+	tp := trafficpackage.NewTrafficPackage("", fmstorage.NewFMStorage("ut-data", nil), nil)
 
 	uid := uint64(10)
 
@@ -64,7 +64,7 @@ func checkBonus(t *testing.T, uid uint64, now time.Time, tp trafficpackage.Daily
 func TestDailyBonus(t *testing.T) {
 	_ = os.RemoveAll("./ut-data")
 
-	tp := trafficpackage.NewDailyBonusOperator(fmstorage.NewFMDailyBonusStorage("ut-data", nil), nil)
+	tp := trafficpackage.NewDailyBonusOperator("", fmstorage.NewFMDailyBonusStorage("ut-data", nil), nil)
 
 	uid := uint64(10)
 

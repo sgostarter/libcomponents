@@ -14,7 +14,18 @@ type PackageInfo struct {
 	LeftAmount int64 `json:"left_amount,omitempty" yaml:"left_amount,omitempty"`
 }
 
+type ConsumeTryEvent struct {
+	TryConsumeCount int64
+	ConsumedCount   int64
+	StableID        string
+	At              time.Time
+}
+
+type FNConsumeEvent func(e ConsumeTryEvent)
+
 type Operator interface {
+	GetStableID() string
+
 	TryConsumeAmount(id uint64, now time.Time, n int64, at time.Time, note string) (int64, error)
 }
 

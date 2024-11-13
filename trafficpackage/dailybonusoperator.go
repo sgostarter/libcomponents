@@ -7,7 +7,7 @@ import (
 	"github.com/sgostarter/i/l"
 )
 
-func NewDailyBonusOperator(storage DailyBonusStorage, logger l.Wrapper) DailyBonusOperator {
+func NewDailyBonusOperator(stableID string, storage DailyBonusStorage, logger l.Wrapper) DailyBonusOperator {
 	if logger == nil {
 		logger = l.NewNopLoggerWrapper()
 	}
@@ -19,14 +19,16 @@ func NewDailyBonusOperator(storage DailyBonusStorage, logger l.Wrapper) DailyBon
 	}
 
 	return &dailyBonusOperatorImpl{
-		logger:  logger,
-		storage: storage,
+		logger:   logger,
+		stableID: stableID,
+		storage:  storage,
 	}
 }
 
 type dailyBonusOperatorImpl struct {
-	logger  l.Wrapper
-	storage DailyBonusStorage
+	logger   l.Wrapper
+	storage  DailyBonusStorage
+	stableID string
 }
 
 func (impl *dailyBonusOperatorImpl) ConsumeAmount(id uint64, now time.Time, n int64, at time.Time, note string) (err error) {
@@ -58,6 +60,10 @@ func (impl *dailyBonusOperatorImpl) ConsumeAmount(id uint64, now time.Time, n in
 	err = impl.storage.ConsumeBonus(id, bonusValue, todayBonusValue, at, note)
 
 	return
+}
+
+func (impl *dailyBonusOperatorImpl) GetStableID() string {
+	return impl.stableID
 }
 
 func (impl *dailyBonusOperatorImpl) TryConsumeAmount(id uint64, now time.Time, n int64, at time.Time, note string) (rn int64, err error) {
