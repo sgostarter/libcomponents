@@ -107,7 +107,7 @@ func (s *Statistics[K, TotalT, T, DT, S, L]) GetSeasonOn(key K, at time.Time) (t
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	year, season, _, _, _, ok := GetKeysForAt(at)
+	year, season, _, _, _, ok := GetKeysForAt(at) //nolint:dogsled
 	if !ok {
 		return
 	}

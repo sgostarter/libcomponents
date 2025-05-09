@@ -1,95 +1,121 @@
-# https://github.com/golangci/golangci-lint/blob/master/.golangci.example.yml
-# https://gitee.com/okleaf/istio1/blob/master/.golangci.yml
-run:
-  # default concurrency is a available CPU number
-  concurrency: 4
-  # timeout for analysis, e.g. 30s, 5m, default is 1m
-  deadline: 5m
+version: "2"
 
-
-linters-settings:
-  govet:
-    shadow: true
-  nakedret:
-    # Disallow any unnamed return statement
-    max-func-lines: 0
-  lll:
-    # max line length, lines longer will be reported. Default is 120.
-    # '\t' is counted as 1 character by default, and can be changed with the tab-width option
-    line-length: 180
-  cyclop:
-    max-complexity: 20
-  funlen:
-    lines: 150
-    statements: 50
-
-  goimports:
-    # put imports beginning with prefix after 3rd-party packages;
-    # it's a comma-separated list of prefixes
-    local-prefixes: github.com/golangci/golangci-lint
-
-# To see a list of supported linters and which linters are enabled/disabled:
-# https://golangci-lint.run/usage/linters/
 linters:
+  default: none
   enable:
-    - gosimple          # 静态分析，用来简化代码
-    - goimports         # 包含 gofmt 的功能，且能检查无用的导入
-#    - revive            # 代替 golint
-    - dupl              # 检查重复的代码
-    - forcetypeassert   # 检查类型断言
-    - gochecknoinits    # 检查是否存在初始化函数
-#    - gochecknoglobals  # 检查是否存在全局变量
-    - goconst           # 检查是否有重复的字符串应该替换成常量
-#    - gomnd             # 检查是否存在魔术数字
-    - goprintffuncname  # 检查 Print 替换成 Printf
-    - importas          # 检查导入包的别名是否和包名一致
-    - lll               # 检查代码一行长度是否超标
-#    - nakedret          # 查找复杂函数中的是否存在裸返回
-    - wastedassign      # 检查是否存在不必要的赋值
-    - unconvert         # 检查是否存在不必要的类型转换
-    - promlinter        # 检查普罗米修斯的指标命名是否规范
-    - predeclared       # 检查是否有代码覆盖了预声明标识符
-    - forbidigo         # 支持 nolint 注释方法
-    - misspell          # 检查注释中的单词是否拼写正确
-    - wsl               # 增加可读性，添加空行
-    - whitespace        # 增加可读性，添加空格
-    - nlreturn          # 增加可读性，return 之前加一行
-  enable-all: false
-  disable:
-    - rowserrcheck      # SQL not used.
-    - sqlclosecheck     # SQL not used.
-    - wrapcheck         # COMBAK: 从外部返回的错误是否被正确的包装
-    - nilerr            # COMBAK: err 不是 nil，但是返回 nil
-    - exhaustive        # COMBAK: 检查枚举的值是否都有用
-  disable-all: false
-  presets:
-    - bugs
+    - bodyclose
+    #- copyloopvar
+    #- depguard
+    - dogsled
+    #- dupl
+    - errcheck
+    - errorlint
+    - funlen
+    - gocheckcompilerdirectives
+    - gochecknoinits
+    - goconst
+    #- gocritic
+    - gocyclo
+    #- godox
+    #- mnd
+    - goprintffuncname
+    #- gosec
+    - govet
+    #- intrange
+    - ineffassign
+    - lll
+    - misspell
+    #- nakedret
+    - noctx
+    #- nolintlint
+    #- revive
+    #- staticcheck
+    - testifylint
+    - unconvert
+    - unparam
     - unused
-    - complexity
-    - error
-  fast: false
+    - whitespace
 
-issues:
-  skip-dirs:
-    - genfiles$
-    - vendor$
-    - test/test-data
-  skip-files:
-    - ".*\\.pb\\.go"
-    - ".*\\.gen\\.go"
-  exclude-rules:
-    # Exclude known linters from partially hard-vendored code,
-    # which is impossible to exclude via "nolint" comments.
-    - path: internal/pkg/xutil/hash.go
-      text: "weak cryptographic primitive"
-      linters:
-        - gosec
-
-# golangci.com configuration
-# https://github.com/golangci/golangci/wiki/Configuration
-service:
-  # use the fixed version to not introduce new linters unexpectedly
-  golangci-lint-version: 1.41.x
-  prepare:
-    - echo "here I can run custom commands, but no preparation needed for this repo"
-
+  settings:
+    dupl:
+      threshold: 100
+    funlen:
+      lines: -1 # the number of lines (code + empty lines) is not a right metric and leads to code without empty line or one-liner.
+      statements: 50
+    goconst:
+      min-len: 2
+      min-occurrences: 3
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+      disabled-checks:
+        - dupImport # https://github.com/go-critic/go-critic/issues/845
+        - ifElseChain
+        - octalLiteral
+        - whyNoLint
+    gocyclo:
+      min-complexity: 30
+    godox:
+      keywords:
+        - FIXME
+    mnd:
+      # don't include the "operation" and "assign"
+      checks:
+        - argument
+        - case
+        - condition
+        - return
+      ignored-numbers:
+        - '0'
+        - '1'
+        - '2'
+        - '3'
+      ignored-functions:
+        - strings.SplitN
+    govet:
+      enable:
+        - nilness
+        - shadow
+    errorlint:
+      asserts: false
+    lll:
+      line-length: 300
+    misspell:
+      locale: US
+      ignore-rules:
+        - "importas" # linter name
+    nolintlint:
+      allow-unused: false # report any unused nolint directives
+      require-explanation: true # require an explanation for nolint directives
+      require-specific: true # require nolint directives to be specific about which linter is being skipped
+    revive:
+      rules:
+        - name: indent-error-flow
+        - name: unexported-return
+          disabled: true
+        - name: unused-parameter
+        - name: unused-receiver
+  exclusions:
+    presets:
+      - comments
+      - std-error-handling
+      - common-false-positives
+      - legacy
+    paths:
+      - test/testdata_etc # test files
+    rules:
+      - path: (.+)_test\.go
+        linters:
+          - dupl
+          - mnd
+          - lll
+      - path: (.+)_test.go
+        linters:
+          - dupl
+          - mnd
+          - lll
+          - testifylint
